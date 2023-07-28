@@ -26,7 +26,7 @@ do
     echo "bench, mem, temp, row_size, row_count, col_width, cycles" >> PLT2_result_${BENCH}.csv
     for col_width in ${COL_WIDTHS}
     do
-        for (( row_size=16; row_size<=1024; row_size=row_size**2 ))
+        for (( row_size=16; row_size<=1024; row_size*=2 ))
         do
 
             for ((sample = 1 ; sample <= $((NUM_SAMPLES)) ; sample++)) 
