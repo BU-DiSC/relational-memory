@@ -39,16 +39,6 @@
 	#define T    unsigned int                   //4Byte
 #endif
 
-#ifdef linux
-  #define magic_timing_begin(cycleLo, cycleHi){\
-    *cycleHi=0;\
-    *cycleLo=0;\
-  }
-  #define magic_timing_end(cycleLo, cycleHi){\
-    *cycleHi=0;\
-    *cycleLo=0;\
-  }
-#else
   #define magic_timing_begin(cycleLo, cycleHi){\
     *cycleHi=0;\
     asm volatile("mrs %0, CNTVCT_EL0": "=r"(*cycleLo) );\
@@ -60,7 +50,6 @@
     *cycleLo = tempCycleLo - *cycleLo;\
     *cycleHi = tempCycleHi - *cycleHi;\
   }
-#endif
 
 int open_fd() {
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
