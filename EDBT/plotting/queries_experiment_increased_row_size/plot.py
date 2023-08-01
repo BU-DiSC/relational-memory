@@ -27,7 +27,7 @@ def read(filepath, skip, exceptions, scale):
                     res.setdefault(mem.strip(),dict()).setdefault(temp.strip(), dict()).setdefault(int(row_size.strip()), []).append(periodms * int(cycles))
     return res
 
-def generate_plot(q, exceptions, figsize, ncol, yoffsetbbox=1):
+def generate_plot(q, exceptions, figsize, ncol, yoffsetbbox=0.95):
     plt.clf()
     values = {}
     plt.rcParams.update({'font.size': 13.5})
@@ -89,6 +89,6 @@ def generate_plot(q, exceptions, figsize, ncol, yoffsetbbox=1):
     plt.show()
 
 if (__name__ == '__main__'):
-    generate_plot(2, [], (5.5, 2.2), 4)
-    generate_plot(3, [], (5.5, 2.2), 4)
+    # generate_plot(2, [], (5.5, 2.2), 4)
+    # generate_plot(3, [], (5.5, 2.2), 4)
     generate_plot(4, [], (5.5, 2.2), 4)
