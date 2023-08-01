@@ -157,6 +157,7 @@ void db_config(struct experiment *args) {
             config->row_count = args->avrg.s.row_count;
             config->enabled_col_num = 1;
             calc_offset_width(&args->avrg.s, args->avrg.col, config->col_offsets, config->col_widths);
+            fprintf(stderr, "config success\n");
             break;
         case Q_SLCT:
             config->row_size = args->slct.s.row_size;
@@ -183,7 +184,8 @@ void db_config(struct experiment *args) {
 //        db2 = mmap(NULL, db2_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, DRAM_DB2_ADDR);
 //    }
 #ifdef __aarch64__
-    plim = mmap(NULL, RELCACHE_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, RELCACHE_ADDR);
+    int hpm_fd          = open_fd();
+    plim = mmap(NULL, RELCACHE_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED|0x40, hpm_fd, RELCACHE_ADDR);
 #else
     plim = malloc(RELCACHE_SIZE);
 #endif
@@ -411,9 +413,9 @@ uint16_t avg_uint16_col(const uint16_t *col, uint32_t row_count) {
 
 uint32_t avg_uint32_col(const uint32_t *col, uint32_t row_count) {
     uint32_t sum = 0;
-    for (int i = 0; i < row_count; i++) {
-        sum += col[i];
-    }
+    //for (int i = 0; i < row_count; i++) {
+    //    sum += col[i];
+    //}
     return sum / row_count;
 }
 
@@ -457,6 +459,7 @@ void avg_col(struct experiment *args) {
 void avg_rme(struct experiment *args) {
     uint64_t res = 0;
     uint64_t start = 0, end = 0;
+    fprintf(stderr, "avg_rme check: %lu %lu\n", args->avrg.col, args->avrg.s.widths[args->avrg.col]);
     if (args->avrg.s.widths[args->avrg.col] == 1) {
         start = clock();
         res = avg_uint8_col(plim, args->avrg.s.row_count);
