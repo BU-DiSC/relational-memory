@@ -1,4 +1,3 @@
-bench, mem, temp, row_size, row_count, col_width, cycles, l1_references, l1_refills, l2_references, l2_refills, inst_retired
 q2_new, r, c, 16, 43690, 1, 84268, 393256, 34, 2780, 1380, 786507
 q2_new, r, h, 16, 43690, 1, 83821, 393256, 41, 2786, 135, 786507
 q2_new, d, -, 16, 43690, 1, 122230, 588352, 214, 21950, 10940, 1072446
