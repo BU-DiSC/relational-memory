@@ -20,6 +20,10 @@
 
 #define MAX_GROUPS    11
 
+#ifndef MAP_32BIT
+#define MAP_32BIT 0x40
+#endif
+
 struct config {
     unsigned int row_size;        // 4B
     unsigned int row_count;       // 4B
@@ -131,7 +135,10 @@ struct experiment {
 
 struct config *config;
 
-int mem_fd;
+int config_fd;
+int plim_fd;
+int db_fd;
+int db2_fd;
 size_t db_size;
 void *db;
 size_t db2_size;
@@ -150,14 +157,14 @@ void calc_offset_width(struct table *t, uint8_t col, unsigned short *offset, uns
 void db_config(struct experiment *args) {
     if (args->store != S_RME) return;
 
-    config = mmap(NULL, LPD0_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, LPD0_ADDR);
+    config_fd = open_fd();
+    config = mmap(NULL, LPD0_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | MAP_32BIT, config_fd, LPD0_ADDR);
     switch (args->query) {
         case Q_AVRG:
             config->row_size = args->avrg.s.row_size;
             config->row_count = args->avrg.s.row_count;
             config->enabled_col_num = 1;
             calc_offset_width(&args->avrg.s, args->avrg.col, config->col_offsets, config->col_widths);
-            fprintf(stderr, "config success\n");
             break;
         case Q_SLCT:
             config->row_size = args->slct.s.row_size;
@@ -179,13 +186,17 @@ void db_config(struct experiment *args) {
 
     config->frame_offset = 0x0;
 
+    fprintf(stderr, "Config:\n");
+    for (int i = 0; i < config->enabled_col_num; ++i) {
+        fprintf(stderr, "\toffset: %3hu width: %hu\n", config->col_offsets[i], config->col_widths[i]);
+    }
 //    if (args.query == Q_JOIN) {
 //        size_t db2_size = args->join.r.row_count * args->join.r.row_size;
-//        db2 = mmap(NULL, db2_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, DRAM_DB2_ADDR);
+//        db2 = mmap(NULL, db2_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | MAP_32BIT, mem_fd, DRAM_DB2_ADDR);
 //    }
 #ifdef __aarch64__
-    int hpm_fd          = open_fd();
-    plim = mmap(NULL, RELCACHE_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED|0x40, hpm_fd, RELCACHE_ADDR);
+    plim_fd = open_fd();
+    plim = mmap(NULL, RELCACHE_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | MAP_32BIT, plim_fd, RELCACHE_ADDR);
 #else
     plim = malloc(RELCACHE_SIZE);
 #endif
@@ -413,9 +424,9 @@ uint16_t avg_uint16_col(const uint16_t *col, uint32_t row_count) {
 
 uint32_t avg_uint32_col(const uint32_t *col, uint32_t row_count) {
     uint32_t sum = 0;
-    //for (int i = 0; i < row_count; i++) {
-    //    sum += col[i];
-    //}
+    for (int i = 0; i < row_count; i++) {
+        sum += col[i];
+    }
     return sum / row_count;
 }
 
@@ -459,7 +470,6 @@ void avg_col(struct experiment *args) {
 void avg_rme(struct experiment *args) {
     uint64_t res = 0;
     uint64_t start = 0, end = 0;
-    fprintf(stderr, "avg_rme check: %lu %lu\n", args->avrg.col, args->avrg.s.widths[args->avrg.col]);
     if (args->avrg.s.widths[args->avrg.col] == 1) {
         start = clock();
         res = avg_uint8_col(plim, args->avrg.s.row_count);
@@ -603,7 +613,6 @@ int main(int argc, char **argv) {
     struct experiment args;
     parse_args(argc, argv, &args);
 
-    mem_fd = open_fd();
     struct table *s;
     struct table *r;
     switch (args.query) {
@@ -625,7 +634,8 @@ int main(int argc, char **argv) {
     db_size = s->row_count * s->row_size;
     fprintf(stderr, "Allocating memory (%luB)\n", db_size);
 #ifdef __aarch64__
-    db = mmap(NULL, db_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, DRAM_DB_ADDR);
+    db_fd = open_fd();
+    db = mmap(NULL, db_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | MAP_32BIT, db_fd, DRAM_DB_ADDR);
 #else
     db = malloc(db_size);
 #endif
@@ -665,7 +675,7 @@ int main(int argc, char **argv) {
 #endif
     }
 #ifdef __aarch64__
-    close(mem_fd);
+    close(db_fd);
     munmap(db, db_size);
 #else
     free(db);
