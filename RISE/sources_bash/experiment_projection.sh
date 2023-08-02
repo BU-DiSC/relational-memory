@@ -6,7 +6,12 @@ NUM_REVS=4
 #NUM_SAMPLES=1 #$1
 NUM_SAMPLES=30 #$1
 
-ROW_SIZE=64
+ROW_SIZE_LIST=(64 128 256 512 1024)
+
+for ((index = 0; index < ${#ROW_SIZE_LIST[@]}; index++))
+do
+
+ROW_SIZE=${ROW_SIZE_LIST[$index]}
 ROW_COUNT=32768
 ENABLED_COL_NUM="1 2 3 4 5 6 7 8 9 10 11"
 
@@ -178,4 +183,4 @@ do
         done
 	done
 done
-
+done
