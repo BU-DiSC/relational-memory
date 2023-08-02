@@ -17,7 +17,7 @@ def read(filepath, skip):
         csv_reader = csv.reader(csv_file, delimiter=',')
         for x in range(0, skip):
             next(csv_reader)
-        for bench, mem, row_size, row_count, col_width, cycles in csv_reader:
+        for bench, mem, temp, row_size, row_count, col_width, cycles in csv_reader:
             res.setdefault(mem.strip(),dict()).setdefault(int(col_width.strip()), []).append(int(cycles))
     return res
 
@@ -26,7 +26,7 @@ def generate_full_plot(figsize):
     plt.rcParams.update({'font.size': 14})
     values = {}
     for i in range(4, 5, 1):
-        res = read("PLT_result_projectivity.csv", 1)
+        res = read("result_projectivity.csv", 1)
         for memory in ('r', 'd', 'c'):
             tmp = [e[1] for e in sorted(res[memory].items())]
             columns = sorted(res[memory].keys())

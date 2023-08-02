@@ -25,7 +25,7 @@ def generate_plot(q, exceptions, figsize, ncol, yoffsetbbox=-0.5):
     plt.clf()
     values = {}
     for i in range(4, 5, 1):
-        res = read("PLT3_result_q"+str(q)+"_v"+str(i)+".csv", 1, exceptions)
+        res = read("result_projectivity.csv", 1, exceptions)
         for memory in ('d', 'r'):
             for temperature in ('c', 'h'):
                 tmp = [e[1] for e in sorted(res[memory][temperature].items())]
