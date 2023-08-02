@@ -26,7 +26,7 @@ def generate_full_plot(figsize):
     plt.rcParams.update({'font.size': 14})
     values = {}
     for i in range(4, 5, 1):
-        res = read("result_projectivity.csv", 1)
+        res = read("result_projectivity_row_size_1024.csv", 1)
         for memory in ('r', 'd', 'c'):
             tmp = [e[1] for e in sorted(res[memory].items())]
             columns = sorted(res[memory].keys())
@@ -36,7 +36,6 @@ def generate_full_plot(figsize):
             avg = [e[1]['avg'] for e in sorted(res[memory].items())]
             std = [e[1]['std'] for e in sorted(res[memory].items())]
             res[memory] = {"avg" : avg, "std" : std}
-        #
         res = {'v'+str(i) : res}
         values = {**values, **res}
 
