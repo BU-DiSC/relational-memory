@@ -51,21 +51,21 @@ int open_fd() {
 }
 
 #ifdef __aarch64__
-#define dsb() {asm volatile("dsb 15");}
+#define dsb() asm volatile("dsb 15")
 #ifdef CLOCK
 #include <time.h>
 #else
-uint64_t clock() {
-    uint64_t val;
+
+clock_t clock() {
+    clock_t val;
     asm volatile("mrs %0, cntvct_el0" : "=r" (val));
     return val;
 }
+
 #endif
 #else
 #define dsb() {}
-
 #include <time.h>
-
 #endif
 
 
@@ -82,13 +82,7 @@ struct avrg_args {
 };
 
 typedef enum {
-    O_LT,
-    O_LTE,
-    O_GT,
-    O_GTE,
-    O_EQ,
-    O_NE,
-    O_NOP
+    O_LT, O_LTE, O_GT, O_GTE, O_EQ, O_NE, O_NOP
 } op_t;
 
 struct slct_args {
@@ -112,15 +106,11 @@ struct join_args {
 };
 
 typedef enum {
-    S_ROW,
-    S_COL,
-    S_RME
+    S_ROW, S_COL, S_RME
 } store_t;
 
 typedef enum {
-    Q_AVRG,
-    Q_SLCT,
-    Q_JOIN
+    Q_AVRG, Q_SLCT, Q_JOIN
 } query_t;
 
 struct experiment {
@@ -145,14 +135,18 @@ size_t db2_size;
 void *db2;
 void *plim;
 
-void calc_offset_width(struct table *t, uint8_t col, unsigned short *offset, unsigned short *width) {
-    unsigned short o = 0;
+size_t calc_offset(struct table *t, uint8_t col) {
+    size_t offset = 0;
     for (int i = 0; i < col; i++) {
-        o += t->widths[i];
+        offset += t->widths[i];
     }
-    *width = t->widths[col];
-    *offset = o;
+    return offset;
 }
+
+#define SELECT_S 0
+#define SELECT_R 1
+#define JOIN_S 2
+#define JOIN_R 3
 
 void db_config(struct experiment *args) {
     if (args->store != S_RME) return;
@@ -164,23 +158,30 @@ void db_config(struct experiment *args) {
             config->row_size = args->avrg.s.row_size;
             config->row_count = args->avrg.s.row_count;
             config->enabled_col_num = 1;
-            calc_offset_width(&args->avrg.s, args->avrg.col, config->col_offsets, config->col_widths);
+            config->col_offsets[0] = calc_offset(&args->avrg.s, args->avrg.col);
+            config->col_widths[0] = args->avrg.s.widths[args->avrg.col];
             break;
         case Q_SLCT:
             config->row_size = args->slct.s.row_size;
             config->row_count = args->slct.s.row_count;
             config->enabled_col_num = args->slct.num_cols;
             for (int i = 0; i < args->slct.num_cols; ++i) {
-                calc_offset_width(&args->slct.s, args->slct.cols[i].col, config->col_offsets + i,
-                                  config->col_widths + i);
+                config->col_offsets[i] = calc_offset(&args->slct.s, args->slct.cols[i].col);
+                config->col_widths[i] = args->slct.s.widths[args->slct.cols[i].col];
             }
             break;
         case Q_JOIN:
             config->row_size = args->join.s.row_size;
             config->row_count = args->join.s.row_count;
             config->enabled_col_num = 2;
-            calc_offset_width(&args->join.s, args->join.s_sel, config->col_offsets, config->col_widths);
-            calc_offset_width(&args->join.s, args->join.s_join, config->col_offsets + 1, config->col_widths + 1);
+            config->col_offsets[SELECT_S] = calc_offset(&args->join.s, args->join.s_sel);
+            config->col_widths[SELECT_S] = args->join.s.widths[args->join.s_sel];
+            config->col_offsets[SELECT_R] = calc_offset(&args->join.r, args->join.r_sel);
+            config->col_widths[SELECT_R] = args->join.r.widths[args->join.r_sel];
+            config->col_offsets[JOIN_S] = calc_offset(&args->join.s, args->join.s_join);
+            config->col_widths[JOIN_S] = args->join.s.widths[args->join.s_join];
+            config->col_offsets[JOIN_R] = calc_offset(&args->join.r, args->join.r_join);
+            config->col_widths[JOIN_R] = args->join.r.widths[args->join.r_join];
             break;
     }
 
@@ -196,7 +197,8 @@ void db_config(struct experiment *args) {
 //    }
 #ifdef __aarch64__
     plim_fd = open_fd();
-    plim = mmap(NULL, RELCACHE_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | MAP_32BIT, plim_fd, RELCACHE_ADDR);
+    plim = mmap(NULL, RELCACHE_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | MAP_32BIT, plim_fd,
+                RELCACHE_ADDR);
 #else
     plim = malloc(RELCACHE_SIZE);
 #endif
@@ -382,7 +384,7 @@ void avg_row(struct experiment *args) {
     for (int i = 0; i < args->avrg.col; ++i) {
         offset += args->avrg.s.widths[i];
     }
-    uint64_t start = 0, end = 0;
+    clock_t start = 0, end = 0;
     uint64_t res = 0;
     if (args->avrg.s.widths[args->avrg.col] == 1) {
         start = clock();
@@ -444,7 +446,7 @@ void avg_col(struct experiment *args) {
         offset += args->avrg.s.widths[i] * args->avrg.s.row_count;
     }
     uint64_t res = 0;
-    uint64_t start = 0, end = 0;
+    clock_t start = 0, end = 0;
     if (args->avrg.s.widths[args->avrg.col] == 1) {
         start = clock();
         res = avg_uint8_col(db + offset, args->avrg.s.row_count);
@@ -469,7 +471,7 @@ void avg_col(struct experiment *args) {
 
 void avg_rme(struct experiment *args) {
     uint64_t res = 0;
-    uint64_t start = 0, end = 0;
+    clock_t start = 0, end = 0;
     if (args->avrg.s.widths[args->avrg.col] == 1) {
         start = clock();
         res = avg_uint8_col(plim, args->avrg.s.row_count);
@@ -506,75 +508,243 @@ void avg(struct experiment *args) {
     }
 }
 
-
 void slct_row(struct experiment *args) {
-//    uint32_t offset = 0;
-//    for (int i = 0; i < args->slct.num_cols; ++i) {
-//#if 0
-//        switch (args->slct.cols[i].op) {
-//            case O_LT:
-//                break;
-//            case O_LTE:
-//                break;
-//            case O_GT:
-//                break;
-//            case O_GTE:
-//                break;
-//            case O_EQ:
-//                break;
-//            case O_NE:
-//                break;
-//            case O_NOP:
-//                break;
-//        }
-//#endif
-//        args->slct.cols[i].col
-//        if ()
-//        offset += args->slct.s.widths[i];
-//    }
-//    uint64_t start = 0, end = 0;
-//    uint64_t res = 0;
-//    if (args->slct.s.widths[args->slct.col] == 1) {
-//        start = clock();
-//        res = avg_uint8_row(db + offset, args->slct.s.row_count, args->slct.s.row_size);
-//        end = clock();
-//    } else if (args->slct.s.widths[args->slct.col] == 2) {
-//        start = clock();
-//        res = avg_uint16_row(db + offset, args->slct.s.row_count, args->slct.s.row_size);
-//        end = clock();
-//    } else if (args->slct.s.widths[args->slct.col] == 4) {
-//        start = clock();
-//        res = avg_uint32_row(db + offset, args->slct.s.row_count, args->slct.s.row_size);
-//        end = clock();
-//    } else if (args->slct.s.widths[args->slct.col] == 8) {
-//        start = clock();
-//        res = avg_uint64_row(db + offset, args->slct.s.row_count, args->slct.s.row_size);
-//        end = clock();
-//    }
-//    fprintf(stderr, "Result: %lu\n", res);
-//    fprintf(stderr, "%lu\n", end - start);
-//    printf("%lu\n", end - start);
+    size_t offsets[MAX_GROUPS];
+    uint8_t conditions[MAX_GROUPS];
+    uint8_t projections[MAX_GROUPS];
+    uint8_t condition_count = 0;
+    uint8_t projection_count = 0;
+    for (int i = 0; i < args->slct.num_cols; ++i) {
+        offsets[i] = calc_offset(&args->slct.s, args->slct.cols[i].col);
+        if (args->slct.cols[i].op != O_NOP) {
+            conditions[condition_count] = i;
+            condition_count++;
+        }
+        if (args->slct.cols[i].project) {
+            projections[projection_count] = i;
+            projection_count++;
+        }
+    }
+
+    uint32_t res_count = 0;
+    void *result = malloc(db_size);
+    void *row = db;
+    clock_t start = clock();
+    for (int i = 0; i < args->slct.s.row_count; ++i) {
+        uint8_t bad = 0;
+        for (int k = 0; k < condition_count; ++k) {
+            int j = conditions[k];
+            if (args->slct.cols[j].op == O_LT) {
+                uint8_t col_width = args->slct.s.widths[args->slct.cols[j].col];
+                if (col_width == 1) {
+                    uint8_t value = *(uint8_t *) (row + offsets[j]);
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                } else if (col_width == 2) {
+                    uint16_t value = *(uint16_t *) (row + offsets[j]);
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                } else if (col_width == 4) {
+                    uint32_t value = *(uint32_t *) (row + offsets[j]);
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                } else if (col_width == 8) {
+                    uint64_t value = *(uint64_t *) (row + offsets[j]);
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (bad) continue;
+        for (int k = 0; k < projection_count; ++k) {
+            int j = projections[k];
+            if (args->slct.cols[j].project) {
+                memcpy(result, row + offsets[j], args->slct.s.widths[args->slct.cols[j].col]);
+            }
+        }
+        res_count++;
+        row += args->slct.s.row_size;
+    }
+    clock_t end = clock();
+    free(result);
+    fprintf(stderr, "Result: %u\n", res_count);
+    fprintf(stderr, "%lu\n", end - start);
+    printf("%lu\n", end - start);
+}
+
+void slct_col(struct experiment *args) {
+    void *cols[MAX_GROUPS];
+    uint8_t conditions[MAX_GROUPS];
+    uint8_t projections[MAX_GROUPS];
+    uint8_t condition_count = 0;
+    uint8_t projection_count = 0;
+    for (int i = 0; i < args->slct.num_cols; ++i) {
+        cols[i] = db + calc_offset(&args->slct.s, args->slct.cols[i].col) * args->slct.s.row_count;
+        if (args->slct.cols[i].op != O_NOP) {
+            conditions[condition_count] = i;
+            condition_count++;
+        }
+        if (args->slct.cols[i].project) {
+            projections[projection_count] = i;
+            projection_count++;
+        }
+    }
+
+    uint32_t res_count = 0;
+    void *result = malloc(db_size);
+    clock_t start = clock();
+    for (int i = 0; i < args->slct.s.row_count; ++i) {
+        uint8_t bad = 0;
+        for (int k = 0; k < condition_count; ++k) {
+            int j = conditions[k];
+            if (args->slct.cols[j].op == O_LT) {
+                uint8_t col_width = args->slct.s.widths[args->slct.cols[j].col];
+                if (col_width == 1) {
+                    uint8_t value = ((uint8_t *) cols[j])[i];
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                } else if (col_width == 2) {
+                    uint16_t value = ((uint16_t *) cols[j])[i];
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                } else if (col_width == 4) {
+                    uint32_t value = ((uint32_t *) cols[j])[i];
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                } else if (col_width == 8) {
+                    uint64_t value = ((uint64_t *) cols[j])[i];
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (bad) continue;
+        for (int k = 0; k < projection_count; ++k) {
+            int j = projections[k];
+            if (args->slct.cols[j].project) {
+                uint8_t col_width = args->slct.s.widths[args->slct.cols[j].col];
+                memcpy(result, cols[j] + i * col_width, col_width);
+            }
+        }
+        res_count++;
+    }
+    clock_t end = clock();
+    free(result);
+    fprintf(stderr, "Result: %u\n", res_count);
+    fprintf(stderr, "%lu\n", end - start);
+    printf("%lu\n", end - start);
+}
+
+void slct_rme(struct experiment *args) {
+    uint8_t conditions[MAX_GROUPS];
+    uint8_t projections[MAX_GROUPS];
+    uint8_t condition_count = 0;
+    uint8_t projection_count = 0;
+    size_t plim_row_size = 0;
+    for (int i = 0; i < args->slct.num_cols; ++i) {
+        if (args->slct.cols[i].op != O_NOP) {
+            conditions[condition_count] = i;
+            condition_count++;
+        }
+        if (args->slct.cols[i].project) {
+            projections[projection_count] = i;
+            projection_count++;
+        }
+        plim_row_size += args->slct.s.widths[args->slct.cols[i].col];
+    }
+
+    uint32_t res_count = 0;
+    void *result = malloc(db_size);
+    void *row = db;
+    clock_t start = clock();
+    for (int i = 0; i < args->slct.s.row_count; ++i) {
+        uint8_t bad = 0;
+        for (int k = 0; k < condition_count; ++k) {
+            int j = conditions[k];
+            if (args->slct.cols[j].op == O_LT) {
+                uint8_t col_width = config->col_widths[j];
+                if (col_width == 1) {
+                    uint8_t value = *(uint8_t *) (row + config->col_offsets[j]);
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                } else if (col_width == 2) {
+                    uint16_t value = *(uint16_t *) (row + config->col_offsets[j]);
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                } else if (col_width == 4) {
+                    uint32_t value = *(uint32_t *) (row + config->col_offsets[j]);
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                } else if (col_width == 8) {
+                    uint64_t value = *(uint64_t *) (row + config->col_offsets[j]);
+                    if (value >= args->slct.cols[j].k) {
+                        bad = 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (bad) continue;
+        for (int k = 0; k < projection_count; ++k) {
+            int j = projections[k];
+            if (args->slct.cols[j].project) {
+                memcpy(result, row + config->col_offsets[j], args->slct.s.widths[args->slct.cols[j].col]);
+            }
+        }
+        res_count++;
+        row += plim_row_size;
+    }
+    clock_t end = clock();
+    free(result);
+    fprintf(stderr, "Result: %u\n", res_count);
+    fprintf(stderr, "%lu\n", end - start);
+    printf("%lu\n", end - start);
 }
 
 void slct(struct experiment *args) {
-//    switch (args->store) {
-//        case S_ROW:
-//            slct_row(args);
-//            break;
-//        case S_COL:
-//            slct_col(args);
-//            break;
-//        case S_RME:
-//            slct_rme(args);
-//            break;
-//    }
+    switch (args->store) {
+        case S_ROW:
+            slct_row(args);
+            break;
+        case S_COL:
+            slct_col(args);
+            break;
+        case S_RME:
+            slct_rme(args);
+            break;
+    }
 }
 
 void db_populate_col(struct table *t, void *data) {
     for (int i = 0; i < t->row_count; ++i) {
         size_t col_offset = 0;
         for (int j = 0; j < t->num_cols; ++j) {
-            uint64_t val = j;
+            uint64_t val = i;
             size_t offset = col_offset + i * t->widths[j];
             if (t->widths[j] == 1) {
                 *(uint8_t *) (data + offset) = val;
@@ -594,7 +764,7 @@ void db_populate_row(struct table *t, void *data) {
     size_t offset = 0;
     for (int i = 0; i < t->row_count; ++i) {
         for (int j = 0; j < t->num_cols; ++j) {
-            uint64_t val = j;
+            uint64_t val = i;
             if (t->widths[j] == 1) {
                 *(uint8_t *) (data + offset) = val;
             } else if (t->widths[j] == 2) {
