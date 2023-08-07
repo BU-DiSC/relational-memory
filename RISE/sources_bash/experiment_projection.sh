@@ -78,55 +78,15 @@ do
     	    ################ Column store #####################
     	
             #populate
-            #  num_columns=$((${ROW_SIZE}/${COL_WIDTH}))
-            #  width="${COL_WIDTH}"
-            #  for ((num= 2 ; num<= $((num_columns)) ; num++)) 
-            #  do
-            #      width="${width},${COL_WIDTH}"
-            #  done
-       	    #  ${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width} -T s -S c #> /dev/null
-            #  #echo "${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width}"
-            #  echo "populate done."
-	    	
-       	    # #config
-            # width="${COL_WIDTH}"
-            # offset=0
-            # col_offset="${offset}"
-            # for (( num= 1 ; num< $((enabled_col_num)) ; num++ )) 
-            # do
-            #     width="${width},${COL_WIDTH}"
-            #     offset=$((offset+COL_OFF))
-            #     col_offset="${col_offset},${offset}"
-            # done
-	    	
-       	    # #execution query
-       	    # ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -S c | awk  -v var="$enabled_col_num"  '{print $1 $2 $3 $4 var", " $5 $6 $7 $8}' >> result_${EXP_NAME}.csv
-       	    # ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -S c >> result_${EXP_NAME}.csv
-            #echo "${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} "
-       	    # wait $!
-            # echo "query done"
-
-            # ${ODIR}/db_reset_relcache 0
-            # ${ODIR}/db_reset_relcache 1
-            # wait $!
-        done
-
-        # with MVCC
-        for ((sample = 1 ; sample <= $((NUM_SAMPLES)) ; sample++)) 
-        do
-    	    #bash update_relcache_version.sh $version #> /dev/null &
-    	    wait $!
-    	
-            #populate
-            num_columns=$((${ROW_SIZE}/${COL_WIDTH}))
-            width="${COL_WIDTH}"
-            for ((num= 2 ; num<= $((num_columns)) ; num++)) 
-            do
-                width="${width},${COL_WIDTH}"
-            done
-       	    ${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width} -T s  #> -V /dev/null
-            #echo "${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width}"
-            echo "populate done."
+             num_columns=$((${ROW_SIZE}/${COL_WIDTH}))
+             width="${COL_WIDTH}"
+             for ((num= 2 ; num<= $((num_columns)) ; num++)) 
+             do
+                 width="${width},${COL_WIDTH}"
+             done
+       	     ${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width} -T s -S c #> /dev/null
+             #echo "${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width}"
+             echo "populate done."
 	    	
        	    #config
             width="${COL_WIDTH}"
@@ -138,49 +98,11 @@ do
                 offset=$((offset+COL_OFF))
                 col_offset="${col_offset},${offset}"
             done
-       	    ${ODIR}/db_config_relcache -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} #> -V /dev/null
-       	    #echo "${ODIR}/db_config_relcache -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} #> /dev/null"
-            echo "config done."
 	    	
        	    #execution query
-       	    # ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -V | awk  -v var="$enabled_col_num"  '{print $1 $2 $3 $4 var", " $5 $6 $7 $8}' >> result_${EXP_NAME}.csv
-            ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} >> result_${EXP_NAME}.csv &
-       	    #echo "${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -V"
-       	    wait $!
-            echo "query done"
-
-            ${ODIR}/db_reset_relcache 0
-            ${ODIR}/db_reset_relcache 1
-            wait $!
-
-    	#     ################ Column store #####################
-    	
-        #     #populate
-              num_columns=$((${ROW_SIZE}/${COL_WIDTH}))
-              width="${COL_WIDTH}"
-              for ((num= 2 ; num<= $((num_columns)) ; num++)) 
-              do
-                  width="${width},${COL_WIDTH}"
-              done
-       	      ${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width} -T s -S c #> -V /dev/null
-              #echo "${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width}"
-              echo "populate done."
-	    	
-       	    #config
-            width="${COL_WIDTH}"
-            offset=0
-            col_offset="${offset}"
-            for (( num= 1 ; num< $((enabled_col_num)) ; num++ )) 
-            do
-                width="${width},${COL_WIDTH}"
-                offset=$((offset+COL_OFF))
-                col_offset="${col_offset},${offset}"
-            done
-	    	
-       	#     # #execution query
-       	#     # ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -S c -V | awk  -v var="$enabled_col_num"  '{print $1 $2 $3 $4 var", " $5 $6 $7 $8}' >> result_${EXP_NAME}.csv
-            ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -S c >> result_${EXP_NAME}.csv
-       	#     # echo "${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -V"
+       	    #${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -S c | awk  -v var="$enabled_col_num"  '{print $1 $2 $3 $4 var", " $5 $6 $7 $8}' >> result_${EXP_NAME}.csv
+       	    ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -S c >> result_${EXP_NAME}.csv
+            #echo "${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} "
        	    wait $!
             echo "query done"
 
@@ -188,6 +110,84 @@ do
             ${ODIR}/db_reset_relcache 1
             wait $!
         done
+
+        # # with MVCC
+        # for ((sample = 1 ; sample <= $((NUM_SAMPLES)) ; sample++)) 
+        # do
+    	#     #bash update_relcache_version.sh $version #> /dev/null &
+    	#     wait $!
+    	
+        #     #populate
+        #     num_columns=$((${ROW_SIZE}/${COL_WIDTH}))
+        #     width="${COL_WIDTH}"
+        #     for ((num= 2 ; num<= $((num_columns)) ; num++)) 
+        #     do
+        #         width="${width},${COL_WIDTH}"
+        #     done
+       	#     ${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width} -T s  #> -V /dev/null
+        #     #echo "${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width}"
+        #     echo "populate done."
+	    	
+       	#     #config
+        #     width="${COL_WIDTH}"
+        #     offset=0
+        #     col_offset="${offset}"
+        #     for (( num= 1 ; num< $((enabled_col_num)) ; num++ )) 
+        #     do
+        #         width="${width},${COL_WIDTH}"
+        #         offset=$((offset+COL_OFF))
+        #         col_offset="${col_offset},${offset}"
+        #     done
+       	#     ${ODIR}/db_config_relcache -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} #> -V /dev/null
+       	#     #echo "${ODIR}/db_config_relcache -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} #> /dev/null"
+        #     echo "config done."
+	    	
+       	#     #execution query
+       	#     # ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -V | awk  -v var="$enabled_col_num"  '{print $1 $2 $3 $4 var", " $5 $6 $7 $8}' >> result_${EXP_NAME}.csv
+        #     ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} >> result_${EXP_NAME}.csv &
+       	#     #echo "${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -V"
+       	#     wait $!
+        #     echo "query done"
+
+        #     ${ODIR}/db_reset_relcache 0
+        #     ${ODIR}/db_reset_relcache 1
+        #     wait $!
+
+    	# #     ################ Column store #####################
+    	
+        # #     #populate
+        #       num_columns=$((${ROW_SIZE}/${COL_WIDTH}))
+        #       width="${COL_WIDTH}"
+        #       for ((num= 2 ; num<= $((num_columns)) ; num++)) 
+        #       do
+        #           width="${width},${COL_WIDTH}"
+        #       done
+       	#       ${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width} -T s -S c #> -V /dev/null
+        #       #echo "${ODIR}/db_generate -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${num_columns} -W ${width}"
+        #       echo "populate done."
+	    	
+       	#     #config
+        #     width="${COL_WIDTH}"
+        #     offset=0
+        #     col_offset="${offset}"
+        #     for (( num= 1 ; num< $((enabled_col_num)) ; num++ )) 
+        #     do
+        #         width="${width},${COL_WIDTH}"
+        #         offset=$((offset+COL_OFF))
+        #         col_offset="${col_offset},${offset}"
+        #     done
+	    	
+       	# #     # #execution query
+       	# #     # ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -S c -V | awk  -v var="$enabled_col_num"  '{print $1 $2 $3 $4 var", " $5 $6 $7 $8}' >> result_${EXP_NAME}.csv
+        #     ${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -S c >> result_${EXP_NAME}.csv
+       	# #     # echo "${ODIR}/${BENCH}${COL_WIDTH} -r ${ROW_SIZE} -R ${ROW_COUNT} -C ${enabled_col_num} -W ${width} -O ${col_offset} -F ${FRAME_OFF} -V"
+       	#     wait $!
+        #     echo "query done"
+
+        #     ${ODIR}/db_reset_relcache 0
+        #     ${ODIR}/db_reset_relcache 1
+        #     wait $!
+        # done
 	done
 done
 done
