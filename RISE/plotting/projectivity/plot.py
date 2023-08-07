@@ -51,7 +51,7 @@ def generate_full_plot(figsize):
 
     plt.xlabel('Projectivity (Number of target columns)')
 
-    ax.set_ylim([0.0, 1.3])
+    ax.set_ylim([0.0, 1.7])
     ax.set_ylabel('Norm. exec. time')
     ax.set_xticks(x)
     ax.set_xlim([-0.5, len(labels_str)-0.5])
