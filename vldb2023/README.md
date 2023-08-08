@@ -17,6 +17,7 @@ Install and run jupyter-lab:
 pip install jupyterlab
 jupyter lab
 ```
+The [notebook](demo.ipynb) will install the rest of the requirements
 
 ### IP address
 
