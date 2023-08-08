@@ -22,6 +22,8 @@
 #define BUS_WIDTH      16
 
 unsigned int get_uniform(unsigned int rangeLow, unsigned int rangeHigh);
+void print_db (unsigned char* db, char store_type, int row_count, int row_size, int num_columns, int * column_widths);
+
 int open_fd() {
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd == -1) {
@@ -40,24 +42,26 @@ int main(int argc, char** argv) {
     bool     print = false;
     unsigned *column_widths = 0;
     char     *column_types = 0;
-    //unsigned column_widths[64];
-    //char     column_types[64];
-    //for( int i=0 ; i<64; i++ ){
-    //    column_widths[i] = 8;
-    //    column_types[i]  = 'r';
-    //}
+    column_widths = (unsigned int *) malloc ( num_columns * sizeof(unsigned int) );
+    column_types = (char *) malloc ( num_columns * sizeof(char) );
+    for( int i=0 ; i<num_columns; i++ ){
+        column_widths[i] = 8;
+        column_types[i]  = 'r';
+    }
     unsigned min = 0;
     unsigned max = 1000;
+    bool mvcc_enabled = false;
+    unsigned int mvcc_offset = 0;
     
     // -- pasring arguments -------------------------------------------
     int opt;
-    while ((opt = getopt(argc, argv, "C:R:S:W:T:Pr:m:M:")) != -1) {
+    while ((opt = getopt(argc, argv, "C:R:S:W:T:Pr:m:M:V")) != -1) {
         switch (opt) {
             case 'C': {
                 num_columns = atoi(optarg); 
                 column_widths = (unsigned int *) malloc ( num_columns * sizeof(unsigned int) );
                 column_types = (char *) malloc ( num_columns * sizeof(char) );
-                for( int i=0 ; i<64; i++ ){
+                for( int i=0 ; i<num_columns; i++ ){
                     column_widths[i] = 8;
                     column_types[i]  = 'r';
                 }
@@ -105,6 +109,10 @@ int main(int argc, char** argv) {
                 }
                 break;
             }
+            case 'V': {
+                mvcc_enabled = true;
+                break;
+            }
             case 'S': {
                 char type = *optarg;
                 if ( type != 'r' && type != 'c' ){
@@ -133,6 +141,7 @@ int main(int argc, char** argv) {
                 fprintf(stderr, "          [-P] print created DB\n");
                 fprintf(stderr, "          [-m] min value for random type\n");
                 fprintf(stderr, "          [-M] max value for random type\n");
+                fprintf(stderr, "          [-V] MVCC mode (bool)\n");
                 exit(EXIT_FAILURE);
             }
         }
@@ -142,6 +151,10 @@ int main(int argc, char** argv) {
         check_row_size += column_widths[i];
     }
     row_size = check_row_size;
+    if ( mvcc_enabled ) {
+        mvcc_offset = row_size;
+        row_size += 2*sizeof(time_t);
+    }
     // -- pasring arguments done --------------------------------------
 
     unsigned db_size = row_count*row_size;
@@ -226,76 +239,46 @@ int main(int argc, char** argv) {
     	}
         offset += column_widths[j];
     }
+
+    if ( mvcc_enabled ) {
+        time_t start, end;
+        struct tm * timeinfo;
+        time( &start );
+        //timeinfo = localtime(&start);
+        //printf("%lu %s\n", start, asctime(timeinfo));
+
+        for(int i=0; i<row_count; i++){
+            if ( store_type == 'r' ) {
+    		    *(time_t*)( db + (i*row_size) + mvcc_offset) = start;
+            }
+            else {
+    		    *(time_t*)( db + (row_count*mvcc_offset) + i*sizeof(time_t)) = start;
+            }
+        }
+        sleep(1);
+
+        mvcc_offset += sizeof(time_t);
+        time( &end );
+        //timeinfo = localtime( &end );
+        //printf("%lu %s\n", end, asctime(timeinfo));
+
+        for(int i=0; i<row_count; i++){
+            float tmp =  (float)get_uniform(min, max)/max;
+            if ( tmp>0.1 ){ continue; }
+            if ( store_type == 'r' ) {
+    		    *(time_t*)( db + (i*row_size) + mvcc_offset) = end;
+            }
+            else {
+    		    *(time_t*)( db + (row_count*mvcc_offset) + i*sizeof(time_t)) = end;
+            }
+        }
+    }
+
     printf("DB is built\n");
 
     // print DB
     if ( print==true) {
-        if ( store_type == 'r' ) {
-            for(int i=0; i<row_count; i++){
-                offset = 0;
-                for(int j=0; j<num_columns; j++){
-                    if ( column_widths[j]==1 ) {
-        		        unsigned char temp = *( unsigned char*)(db + (i*row_size) + offset);
-                        printf("%d\t", temp);
-                    }
-                    else if ( column_widths[j]==2 ) {
-        		        unsigned short temp = *(  unsigned short*)(db + (i*row_size) + offset);
-                        printf("%d\t", temp);
-                    }
-                    else if ( column_widths[j]==4 ) {
-        		        unsigned int temp = *(  unsigned int*)(db + (i*row_size) + offset);
-                        printf("%d\t", temp);
-                    }
-                    else if ( column_widths[j]==8 ) {
-        		        unsigned long temp = *(unsigned long*)(db + (i*row_size) + offset);
-                        printf("%ld\t", temp);
-                    }
-                    else{
-                        for ( int k=column_widths[j]-1 ; k>=0 ; k-- ) {
-    		                unsigned char temp = *(unsigned char*)(db + (i*row_size) + offset + k);
-                            printf("%x", temp);
-                        }
-                        printf("\t");
-                    }
-                    offset += column_widths[j];
-                }
-                printf("\n");
-            }
-        }
-        // print column store
-        else {
-            for(int i=0; i<row_count; i++){
-                offset = 0;
-                for(int j=0; j<num_columns; j++){
-                    if ( column_widths[j]==1 ) {
-        		        unsigned char temp = *(unsigned char*)(db + row_count*offset + i*column_widths[j]);
-                        printf("%d\t", temp);
-                    }
-                    else if ( column_widths[j]==2 ) {
-        		        unsigned short temp = *(unsigned short*)(db + row_count*offset + i*column_widths[j]);
-                        printf("%d\t", temp);
-                    }
-                    else if ( column_widths[j]==4 ) {
-        		        unsigned int temp = *(  unsigned int*)(db + row_count*offset + i*column_widths[j]);
-                        printf("%d\t", temp);
-                    }
-                    else if ( column_widths[j]==8 ) {
-        		        unsigned long temp = *(unsigned long*)(db + row_count*offset + i*column_widths[j]);
-                        printf("%ld\t", temp);
-                    }
-                    else{
-                        //for ( int k=0 ; k<column_widths[j] ; k++ ) {
-                        for ( int k=column_widths[j]-1 ; k>=0 ; k-- ) {
-    		                unsigned char temp = *(unsigned char*)(db + row_count*offset + i*column_widths[j] + k);
-                            printf("%x", temp);
-                        }
-                        printf("\t");
-                    }
-                    offset += column_widths[j];
-                }
-                printf("\n");
-            }
-        }
+        print_db( db, store_type, row_count, row_size, num_columns, column_widths );
     }
 
     return 0;
@@ -306,4 +289,76 @@ unsigned int get_uniform(unsigned int rangeLow, unsigned int rangeHigh) {
     unsigned int range = rangeHigh - rangeLow + 1;
     unsigned int myRand_scaled = (myRand * range) + rangeLow;
     return myRand_scaled;
+}
+
+void print_db (unsigned char* db, char store_type, int row_count, int row_size, int num_columns, int * column_widths){
+    int offset = 0;
+    // print row store
+    if ( store_type == 'r' ) {
+        for(int i=0; i<row_count; i++){
+            offset = 0;
+            for(int j=0; j<num_columns; j++){
+                if ( column_widths[j]==1 ) {
+    		        unsigned char temp = *( unsigned char*)(db + (i*row_size) + offset);
+                    printf("%d\t", temp);
+                }
+                else if ( column_widths[j]==2 ) {
+    		        unsigned short temp = *(  unsigned short*)(db + (i*row_size) + offset);
+                    printf("%d\t", temp);
+                }
+                else if ( column_widths[j]==4 ) {
+    		        unsigned int temp = *(  unsigned int*)(db + (i*row_size) + offset);
+                    printf("%d\t", temp);
+                }
+                else if ( column_widths[j]==8 ) {
+    		        unsigned long temp = *(unsigned long*)(db + (i*row_size) + offset);
+                    printf("%ld\t", temp);
+                }
+                else{
+                    for ( int k=column_widths[j]-1 ; k>=0 ; k-- ) {
+                  unsigned char temp = *(unsigned char*)(db + (i*row_size) + offset + k);
+                        printf("%x", temp);
+                    }
+                    printf("\t");
+                }
+                offset += column_widths[j];
+            }
+            printf("\n");
+        }
+    }
+    // print column store
+    else {
+        for(int i=0; i<row_count; i++){
+            offset = 0;
+            for(int j=0; j<num_columns; j++){
+                if ( column_widths[j]==1 ) {
+    		        unsigned char temp = *(unsigned char*)(db + row_count*offset + i*column_widths[j]);
+                    printf("%d\t", temp);
+                }
+                else if ( column_widths[j]==2 ) {
+    		        unsigned short temp = *(unsigned short*)(db + row_count*offset + i*column_widths[j]);
+                    printf("%d\t", temp);
+                }
+                else if ( column_widths[j]==4 ) {
+    		        unsigned int temp = *(  unsigned int*)(db + row_count*offset + i*column_widths[j]);
+                    printf("%d\t", temp);
+                }
+                else if ( column_widths[j]==8 ) {
+    		        unsigned long temp = *(unsigned long*)(db + row_count*offset + i*column_widths[j]);
+                    printf("%ld\t", temp);
+                }
+                else{
+                    //for ( int k=0 ; k<column_widths[j] ; k++ ) {
+                    for ( int k=column_widths[j]-1 ; k>=0 ; k-- ) {
+                        unsigned char temp = *(unsigned char*)(db + row_count*offset + i*column_widths[j] + k);
+                        printf("%x", temp);
+                    }
+                    printf("\t");
+                }
+                offset += column_widths[j];
+            }
+            printf("\n");
+        }
+        }
+    return;
 }

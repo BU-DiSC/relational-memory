@@ -8,10 +8,11 @@ int main(int argc, char** argv) {
     unsigned short col_widths[MAX_GROUPS];//We support maximum of 11 columns
     unsigned short col_offsets[MAX_GROUPS];
     unsigned int   frame_offset = 0;
+    bool mvcc_enabled = false;
 
     // -- pasring arguments -------------------------------------------
     int opt;
-    while ((opt = getopt(argc, argv, "C:R:W:r:O:F:")) != -1) {
+    while ((opt = getopt(argc, argv, "C:R:W:r:O:F:V")) != -1) {
         switch (opt) {
             case 'C': {
                 enabled_col_num = atoi(optarg); break;
@@ -61,15 +62,32 @@ int main(int argc, char** argv) {
                 }
                 break;
             }
+            case 'V': {
+                mvcc_enabled = true;
+                break;
+            }
             default: {
                 fprintf(stderr, "Usage: %s [-C] number of columns (int) (default: 8)\n", argv[0]);
                 fprintf(stderr, "          [-r] row size (int) (default: 64)\n");
                 fprintf(stderr, "          [-R] number of row counts (int)\n");
                 fprintf(stderr, "          [-W] array of column widths (\"int, int, ..., int\") \n");
                 fprintf(stderr, "          [-O] array of column offsets (\"int, int, ..., int\") \n");
+                fprintf(stderr, "          [-V] MVCC mode (bool)\n");
                 exit(EXIT_FAILURE);
             }
         }
+    }
+    unsigned mvcc_offset = 0;
+    if ( mvcc_enabled ) {
+        if ( enabled_col_num == 11 ){
+            fprintf(stderr, "[-C] one column is reserved for MVCC timestamps. \n");
+            exit(EXIT_FAILURE);
+        }
+        enabled_col_num++;
+        col_offsets[enabled_col_num-1] = row_size;
+        col_widths[enabled_col_num-1]  = 2*sizeof(time_t);
+        mvcc_offset = row_size;
+        row_size += 2*sizeof(time_t);
     }
     // -- pasring arguments done --------------------------------------
 
