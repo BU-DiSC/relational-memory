@@ -335,7 +335,7 @@ void db_populate_col(struct table *t, void *data) {
     for (int i = 0; i < t->row_count; ++i) {
         size_t col_offset = 0;
         for (int j = 0; j < t->num_cols; ++j) {
-            uint64_t val = i;
+            uint64_t val = i + j;
             size_t offset = col_offset + i * t->widths[j];
             if (t->widths[j] == 1) {
                 *(uint8_t *) (data + offset) = val;
@@ -355,7 +355,7 @@ void db_populate_row(struct table *t, void *data) {
     size_t offset = 0;
     for (int i = 0; i < t->row_count; ++i) {
         for (int j = 0; j < t->num_cols; ++j) {
-            uint64_t val = i;
+            uint64_t val = i + j;
             if (t->widths[j] == 1) {
                 *(uint8_t *) (data + offset) = val;
             } else if (t->widths[j] == 2) {
@@ -778,6 +778,7 @@ void slct_row(struct arguments *args) {
 
     uint32_t res_count = 0;
     void *result = malloc(db_size);
+    void *ptr = result;
     void *row = db;
     clock_t start = clock();
     for (int i = 0; i < args->slct.s.row_count; ++i) {
@@ -817,9 +818,9 @@ void slct_row(struct arguments *args) {
         if (bad) continue;
         for (int j = 0; j < projection_count; ++j) {
             int col = projections[j];
-            if (args->slct.cols[col].project) {
-                memcpy(result, row + offsets[col], args->slct.s.widths[args->slct.cols[col].col]);
-            }
+            uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+            memcpy(ptr, row + offsets[col], width);
+            ptr += width;
         }
         res_count++;
         row += args->slct.s.row_size;
@@ -830,15 +831,45 @@ void slct_row(struct arguments *args) {
     logger("%lu\n", end - start);
     fprintf(stderr, "%lu\n", end - start);
 
-    // for (int i = 0; i < res_count; ++i) {
-    //     for (int j = 0; j < projection_count; ++j) {
-    //         int col = projections[j];
-    //         if (args->slct.cols[col].project) {
-    //             uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
-    //             memcpy(result, row + offsets[col], width);
-    //         }
-    //     }
-    // }
+    for (int j = 0; j < projection_count; ++j) {
+        int col = projections[j];
+        logger("c%hhu ", args->slct.cols[col].col);
+    }
+    logger("\n");
+    ptr = result;
+    for (int i = 0; i < res_count; ++i) {
+        for (int j = 0; j < projection_count; ++j) {
+            int col = projections[j];
+            uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+            switch (width) {
+                case 1: {
+                    uint8_t val = *(uint8_t *) ptr;
+                    logger("%hhu ", val);
+                    break;
+                }
+                case 2: {
+                    uint16_t val = *(uint16_t *) ptr;
+                    logger("%hu ", val);
+                    break;
+                }
+                case 4: {
+                    uint32_t val = *(uint32_t *) ptr;
+                    logger("%u ", val);
+                    break;
+                }
+                case 8: {
+                    uint64_t val = *(uint64_t *) ptr;
+                    logger("%lu ", val);
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            ptr += width;
+        }
+        logger("\n");
+    }
     free(result);
 }
 
@@ -862,6 +893,7 @@ void slct_col(struct arguments *args) {
 
     uint32_t res_count = 0;
     void *result = malloc(db_size);
+    void *ptr = result;
     clock_t start = clock();
     for (int i = 0; i < args->slct.s.row_count; ++i) {
         uint8_t bad = 0;
@@ -902,7 +934,8 @@ void slct_col(struct arguments *args) {
             int col = projections[j];
             if (args->slct.cols[col].project) {
                 uint8_t col_width = args->slct.s.widths[args->slct.cols[col].col];
-                memcpy(result, cols[col] + i * col_width, col_width);
+                memcpy(ptr, cols[col] + i * col_width, col_width);
+                ptr += col_width;
             }
         }
         res_count++;
@@ -911,6 +944,46 @@ void slct_col(struct arguments *args) {
     logger("Result: %u\n", res_count);
     logger("%lu\n", end - start);
     fprintf(stderr, "%lu\n", end - start);
+
+    for (int j = 0; j < projection_count; ++j) {
+        int col = projections[j];
+        logger("c%hhu ", args->slct.cols[col].col);
+    }
+    logger("\n");
+    ptr = result;
+    for (int i = 0; i < res_count; ++i) {
+        for (int j = 0; j < projection_count; ++j) {
+            int col = projections[j];
+            uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+            switch (width) {
+                case 1: {
+                    uint8_t val = *(uint8_t *) ptr;
+                    logger("%hhu ", val);
+                    break;
+                }
+                case 2: {
+                    uint16_t val = *(uint16_t *) ptr;
+                    logger("%hu ", val);
+                    break;
+                }
+                case 4: {
+                    uint32_t val = *(uint32_t *) ptr;
+                    logger("%u ", val);
+                    break;
+                }
+                case 8: {
+                    uint64_t val = *(uint64_t *) ptr;
+                    logger("%lu ", val);
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            ptr += width;
+        }
+        logger("\n");
+    }
     free(result);
 }
 
@@ -934,6 +1007,7 @@ void slct_rme(struct arguments *args) {
 
     uint32_t res_count = 0;
     void *result = malloc(db_size);
+    void *ptr = result;
     void *row = db;
     clock_t start = clock();
     for (int i = 0; i < args->slct.s.row_count; ++i) {
@@ -974,7 +1048,9 @@ void slct_rme(struct arguments *args) {
         for (int j = 0; j < projection_count; ++j) {
             int col = projections[j];
             if (args->slct.cols[col].project) {
-                memcpy(result, row + config->col_offsets[col], args->slct.s.widths[args->slct.cols[col].col]);
+                uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+                memcpy(ptr, row + config->col_offsets[col], width);
+                ptr += width;
             }
         }
         res_count++;
@@ -984,6 +1060,46 @@ void slct_rme(struct arguments *args) {
     logger("Result: %u\n", res_count);
     logger("%lu\n", end - start);
     fprintf(stderr, "%lu\n", end - start);
+
+    for (int j = 0; j < projection_count; ++j) {
+        int col = projections[j];
+        logger("c%hhu ", args->slct.cols[col].col);
+    }
+    logger("\n");
+    ptr = result;
+    for (int i = 0; i < res_count; ++i) {
+        for (int j = 0; j < projection_count; ++j) {
+            int col = projections[j];
+            uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+            switch (width) {
+                case 1: {
+                    uint8_t val = *(uint8_t *) ptr;
+                    logger("%hhu ", val);
+                    break;
+                }
+                case 2: {
+                    uint16_t val = *(uint16_t *) ptr;
+                    logger("%hu ", val);
+                    break;
+                }
+                case 4: {
+                    uint32_t val = *(uint32_t *) ptr;
+                    logger("%u ", val);
+                    break;
+                }
+                case 8: {
+                    uint64_t val = *(uint64_t *) ptr;
+                    logger("%lu ", val);
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            ptr += width;
+        }
+        logger("\n");
+    }
     free(result);
 }
 
@@ -1063,9 +1179,11 @@ void join_row(struct arguments *args) {
     logger("Result: %u\n", res_count / 2);
     logger("%u\n", sum_access);
     fprintf(stderr, "%u\n", sum_access);
-//    for (int i = 0; i < res_count; i+=2) {
-//        fprintf(stderr, "%u,%u\n", join_result[i], join_result[i+1]);
-//    }
+
+    logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
+    for (int i = 0; i < res_count; i+=2) {
+        logger("%u %u\n", join_result[i], join_result[i+1]);
+    }
     free(join_result);
 }
 
@@ -1135,9 +1253,11 @@ void join_col(struct arguments *args) {
     logger("Result: %u\n", res_count / 2);
     logger("%u\n", sum_access);
     fprintf(stderr, "%u\n", sum_access);
-//    for (int i = 0; i < res_count; i+=2) {
-//        fprintf(stderr, "%u,%u\n", join_result[i], join_result[i+1]);
-//    }
+
+    logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
+    for (int i = 0; i < res_count; i+=2) {
+        logger("%u %u\n", join_result[i], join_result[i+1]);
+    }
     free(join_result);
 }
 
@@ -1203,6 +1323,7 @@ void join_rme(struct arguments *args) {
         if (!found) {
             continue;
         }
+//        logger("Match %u\n", key);
         join_result[res_count] = val1;
         res_count++;
         join_result[res_count] = val2;
@@ -1213,9 +1334,11 @@ void join_rme(struct arguments *args) {
     logger("Result: %u\n", res_count / 2);
     logger("%u\n", sum_access);
     fprintf(stderr, "%u\n", sum_access);
-//    for (int i = 0; i < res_count; i+=2) {
-//        fprintf(stderr, "%u,%u\n", join_result[i], join_result[i+1]);
-//    }
+
+    logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
+    for (int i = 0; i < res_count; i+=2) {
+        logger("%u %u\n", join_result[i], join_result[i+1]);
+    }
     free(join_result);
 }
 
