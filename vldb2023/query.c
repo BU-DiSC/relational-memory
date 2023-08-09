@@ -1008,7 +1008,7 @@ void slct_rme(struct arguments *args) {
     uint32_t res_count = 0;
     void *result = malloc(db_size);
     void *ptr = result;
-    void *row = db;
+    void *row = plim;
     clock_t start = clock();
     for (int i = 0; i < args->slct.s.row_count; ++i) {
         uint8_t bad = 0;
@@ -1267,8 +1267,6 @@ void join_rme(struct arguments *args) {
 
     clock_t start, end;
     struct hash_table *ht = ht_create();
-    //************************************* CONFIG *******************************************
-    db_config(args);
     uint32_t *ptr = plim;
     for (int i = 0; i < args->join.s.row_count; i++) {
         start = clock();
@@ -1292,6 +1290,15 @@ void join_rme(struct arguments *args) {
     // ************************* PLIM Hash Table1 Ends *****************************
     memunmap(plim, RELCACHE_SIZE);
 
+//    for (int i = 0; i < 10; ++i) {
+//        struct ll_node *node = ht->buckets[i].head;
+//        if (node) {
+//            struct ht_item *item = node->item;
+//            logger("> %u %u\n", item->key, item->value);
+//        } else {
+//            logger("> -\n");
+//        }
+//    }
     //************************************* POPULATE 2 *******************************************
     db2_init(args);
 
