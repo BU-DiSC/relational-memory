@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -26,8 +27,6 @@
 #ifndef MAP_32BIT
 #define MAP_32BIT 0x40
 #endif
-
-
 
 /////////////////////////////////////////// JOIN ///////////////////////////////////////////
 
@@ -217,6 +216,16 @@ size_t db_size;
 void *db;
 size_t db2_size;
 void *db2;
+int verbose;
+
+void logger(const char *format, ...) {
+    if (verbose > 0) {
+        va_list args;
+        va_start(args, format);
+        vprintf(format, args);
+        va_end(args);
+    }
+}
 
 size_t calc_offset(struct table *t, uint8_t col) {
     size_t offset = 0;
@@ -230,12 +239,12 @@ void *memmap(size_t len, off_t offset) {
 #ifdef __aarch64__
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd == -1) {
-        printf("Can't open /dev/mem.\n");
+        fprintf(stderr, "Can't open /dev/mem.\n");
         exit(EXIT_FAILURE);
     }
     void *ptr = mmap(NULL, len, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | MAP_32BIT, fd, offset);
     if (ptr == MAP_FAILED) {
-        printf("Error: mmap");
+        fprintf(stderr, "Error: mmap");
         exit(EXIT_FAILURE);
     }
     close(fd);
@@ -297,10 +306,9 @@ void db_config(struct arguments *args) {
 
     config->frame_offset = 0x0;
     db_reset(0x0);
-
-    fprintf(stderr, "Config:\n");
+    logger("Config:\n");
     for (int i = 0; i < config->enabled_col_num; ++i) {
-        fprintf(stderr, "\toffset: %3hu width: %hu\n", config->col_offsets[i], config->col_widths[i]);
+        logger("\toffset: %3hu width: %hu\n", config->col_offsets[i], config->col_widths[i]);
     }
     plim = memmap(RELCACHE_SIZE, RELCACHE_ADDR);
 }
@@ -316,9 +324,9 @@ void db2_config(struct arguments *args) {
     config->frame_offset = 0x0;
     db_reset(0x40000000);
 
-    fprintf(stderr, "Config:\n");
+    logger("Config:\n");
     for (int i = 0; i < config->enabled_col_num; ++i) {
-        fprintf(stderr, "\toffset: %3hu width: %hu\n", config->col_offsets[i], config->col_widths[i]);
+        logger("\toffset: %3hu width: %hu\n", config->col_offsets[i], config->col_widths[i]);
     }
     plim = memmap(RELCACHE_SIZE, RELCACHE_ADDR);
 }
@@ -378,23 +386,25 @@ void db_init(struct arguments *args) {
 
     // db generate
     db_size = s->row_count * s->row_size;
-    fprintf(stderr, "Allocating memory (%luB)\n", db_size);
+    logger("Allocating memory (%luB)\n", db_size);
     db = memmap(db_size, DRAM_DB_ADDR);
 
     if (args->store == S_COL) {
-        fprintf(stderr, "Populating column store\n");
+        logger("Populating column store\n");
         db_populate_col(s, db);
     } else {
-        fprintf(stderr, "Populating row store\n");
+        logger("Populating row store\n");
         db_populate_row(s, db);
 
         if (args->store == S_RME) {
-            fprintf(stderr, "Configuring RME\n");
+            logger("Configuring RME\n");
             db_config(args);
         }
     }
+#ifdef __aarch64__
     memunmap(db, db_size);
     db = memmap(db_size, DRAM_DB_ADDR);
+#endif
 }
 
 void db2_init(struct arguments *args) {
@@ -402,70 +412,72 @@ void db2_init(struct arguments *args) {
 
     // db generate
     db2_size = r->row_count * r->row_size;
-    fprintf(stderr, "Allocating memory (%luB)\n", db2_size);
+    logger("Allocating memory (%luB)\n", db2_size);
     db2 = memmap(db2_size, DRAM_DB2_ADDR);
 
     if (args->store == S_COL) {
-        fprintf(stderr, "Populating column store\n");
-        db_populate_col(r, db);
+        logger("Populating column store\n");
+        db_populate_col(r, db2);
     } else {
-        fprintf(stderr, "Populating row store\n");
-        db_populate_row(r, db);
+        logger("Populating row store\n");
+        db_populate_row(r, db2);
 
         if (args->store == S_RME) {
-            fprintf(stderr, "Configuring RME\n");
+            logger("Configuring RME\n");
             db2_config(args);
         }
     }
+#ifdef __aarch64__
     memunmap(db2, db2_size);
     db2 = memmap(db2_size, DRAM_DB2_ADDR);
+#endif
 }
 
 void parse_table_args(char **argv, struct table *t) {
-    fprintf(stderr, "Table:\n");
+    logger("Table:\n");
     t->row_count = strtoul(argv[0], NULL, 0);
     t->num_cols = strtoul(argv[1], NULL, 0);
     t->widths = malloc(t->num_cols * sizeof(uint8_t));
     t->row_size = 0;
-    fprintf(stderr, "\tRows: %u\n", t->row_count);
-    fprintf(stderr, "\tCols: %hhu\n", t->num_cols);
-    fprintf(stderr, "\tWidths:");
+    logger("\tRows: %u\n", t->row_count);
+    logger("\tCols: %hhu\n", t->num_cols);
+    logger("\tWidths:");
     char *pt = strtok(argv[2], ",");
     for (int i = 0; i < t->num_cols; i++) {
         if (pt == NULL) {
-            printf("Error: too few column widths\n");
+            fprintf(stderr, "Error: too few column widths\n");
             exit(EXIT_FAILURE);
         }
         t->widths[i] = strtoul(pt, NULL, 0);
-        fprintf(stderr, " %hhu", t->widths[i]);
+        logger(" %hhu", t->widths[i]);
         t->row_size += t->widths[i];
         pt = strtok(NULL, ",");
     }
-    fprintf(stderr, "\n\tRow size: %u\n", t->row_size);
+    logger("\n\tRow size: %u\n", t->row_size);
 }
 
 void parse_table_args2(char **argv, struct table *t) {
-    fprintf(stderr, "Table:\n");
+    logger("Table:\n");
     t->row_count = strtoul(argv[0], NULL, 0);
     t->num_cols = strtoul(argv[1], NULL, 0);
     t->widths = malloc(t->num_cols * sizeof(uint8_t));
     t->row_size = 0;
-    fprintf(stderr, "\tRows: %u\n", t->row_count);
-    fprintf(stderr, "\tCols: %hhu\n", t->num_cols);
-    fprintf(stderr, "\tWidths:");
+    logger("\tRows: %u\n", t->row_count);
+    logger("\tCols: %hhu\n", t->num_cols);
+    logger("\tWidths:");
     char *pt = strtok(argv[2], ",");
     for (int i = 0; i < t->num_cols; i++) {
         if (pt == NULL) {
-            printf("Error: too few column widths\n");
+            fprintf(stderr, "Error: too few column widths\n");
             exit(EXIT_FAILURE);
         }
 //        t->widths[i] = strtoul(pt, NULL, 0);
         t->widths[i] = sizeof(uint32_t);
-        fprintf(stderr, " %hhu", t->widths[i]);
+        logger(" %hhu", t->widths[i]);
         t->row_size += t->widths[i];
         pt = strtok(NULL, ",");
     }
-    fprintf(stderr, "\n\tRow size: %u\n", t->row_size);
+    logger("\n\tRow size: %u\n", t->row_size);
 }
 
 void free_args(struct arguments *args) {
@@ -484,49 +496,56 @@ void free_args(struct arguments *args) {
 }
 
 void parse_args(int argc, char **argv, struct arguments *args) {
+    if (strcmp(argv[1], "-q") == 0) {
+        argv++;
+        argc--;
+        verbose = 0;
+    } else {
+        verbose = 1;
+    }
     char *store = argv[1];
     if (strcmp(store, "ROW") == 0) {
         args->store = S_ROW;
-        fprintf(stderr, "ROW store\n");
+        logger("ROW store\n");
     } else if (strcmp(store, "COL") == 0) {
         args->store = S_COL;
-        fprintf(stderr, "COL store\n");
+        logger("COL store\n");
     } else if (strcmp(store, "RME") == 0) {
         args->store = S_RME;
-        fprintf(stderr, "RME store\n");
+        logger("RME store\n");
     } else {
-        printf("Error: unknown store %s\n", store);
+        fprintf(stderr, "Error: unknown store %s\n", store);
         exit(EXIT_FAILURE);
     }
 
     char *query = argv[2];
     if (strcmp(query, "q1") == 0) { // argc 7
         if (argc != 7) {
-            printf("Error: unexpected args %d\n", argc);
+            fprintf(stderr, "Error: unexpected args %d\n", argc);
             exit(EXIT_FAILURE);
         }
-        fprintf(stderr, "AVG query\n");
+        logger("AVG query\n");
         args->query = Q_AVRG;
         parse_table_args(&argv[3], &args->avrg.s);
         args->avrg.col = strtoul(argv[6], NULL, 0);
-        fprintf(stderr, "target column: %hhu\n", args->avrg.col);
+        logger("target column: %hhu\n", args->avrg.col);
     } else if (strcmp(query, "q2") == 0) { // argc 8
         if (argc != 8) {
-            printf("Error: unexpected args %d\n", argc);
+            fprintf(stderr, "Error: unexpected args %d\n", argc);
             exit(EXIT_FAILURE);
         }
-        fprintf(stderr, "SELECT query\n");
+        logger("SELECT query\n");
         args->query = Q_SLCT;
         parse_table_args(&argv[3], &args->slct.s);
         args->slct.num_cols = strtoul(argv[6], NULL, 0);
         if (args->slct.num_cols > 11) {
-            printf("Error: maximum number of columns 11\n");
+            fprintf(stderr, "Error: maximum number of columns 11\n");
             exit(EXIT_FAILURE);
         }
         char *pt = strtok(argv[7], ",");
         for (int i = 0; i < args->slct.num_cols; ++i) {
             if (pt == NULL) {
-                printf("Error: too few columns\n");
+                fprintf(stderr, "Error: too few columns\n");
                 exit(EXIT_FAILURE);
             }
             char *end;
@@ -553,10 +572,10 @@ void parse_args(int argc, char **argv, struct arguments *args) {
         }
     } else if (strcmp(query, "q3") == 0) { // argc 13
         if (argc != 13) {
-            printf("Error: unexpected args %d\n", argc);
+            fprintf(stderr, "Error: unexpected args %d\n", argc);
             exit(EXIT_FAILURE);
         }
-        fprintf(stderr, "JOIN query\n");
+        logger("JOIN query\n");
         args->query = Q_JOIN;
         parse_table_args2(&argv[3], &args->join.s);
         parse_table_args2(&argv[6], &args->join.r);
@@ -564,12 +583,12 @@ void parse_args(int argc, char **argv, struct arguments *args) {
         args->join.r_sel = strtoul(argv[10], NULL, 0);
         args->join.s_join = strtoul(argv[11], NULL, 0);
         args->join.r_join = strtoul(argv[12], NULL, 0);
-        fprintf(stderr, "select s column: %hhu\n", args->join.s_sel);
-        fprintf(stderr, "select r column: %hhu\n", args->join.r_sel);
-        fprintf(stderr, "join s column: %hhu\n", args->join.s_join);
-        fprintf(stderr, "join s column: %hhu\n", args->join.r_join);
+        logger("select s column: %hhu\n", args->join.s_sel);
+        logger("select r column: %hhu\n", args->join.r_sel);
+        logger("join s column: %hhu\n", args->join.s_join);
+        logger("join s column: %hhu\n", args->join.r_join);
     } else {
-        printf("Error: unknown query %s\n", query);
+        fprintf(stderr, "Error: unknown query %s\n", query);
         exit(EXIT_FAILURE);
     }
 }
@@ -634,9 +653,9 @@ void avg_row(struct arguments *args) {
         res = avg_uint64_row(db + offset, args->avrg.s.row_count, args->avrg.s.row_size);
         end = clock();
     }
-    fprintf(stderr, "Result: %lu\n", res);
+    logger("Result: %lu\n", res);
+    logger("%lu\n", end - start);
     fprintf(stderr, "%lu\n", end - start);
-    printf("%lu\n", end - start);
 }
 
 uint8_t avg_uint8_col(const uint8_t *col, uint32_t row_count) {
@@ -695,9 +714,9 @@ void avg_col(struct arguments *args) {
         res = avg_uint64_col(db + offset, args->avrg.s.row_count);
         end = clock();
     }
-    fprintf(stderr, "Result: %lu\n", res);
+    logger("Result: %lu\n", res);
+    logger("%lu\n", end - start);
     fprintf(stderr, "%lu\n", end - start);
-    printf("%lu\n", end - start);
 }
 
 void avg_rme(struct arguments *args) {
@@ -720,9 +739,9 @@ void avg_rme(struct arguments *args) {
         res = avg_uint64_col(plim, args->avrg.s.row_count);
         end = clock();
     }
-    fprintf(stderr, "Result: %lu\n", res);
+    logger("Result: %lu\n", res);
+    logger("%lu\n", end - start);
     fprintf(stderr, "%lu\n", end - start);
-    printf("%lu\n", end - start);
 }
 
 void avg(struct arguments *args) {
@@ -806,10 +825,21 @@ void slct_row(struct arguments *args) {
         row += args->slct.s.row_size;
     }
     clock_t end = clock();
-    free(result);
-    fprintf(stderr, "Result: %u\n", res_count);
+
+    logger("Result: %u\n", res_count);
+    logger("%lu\n", end - start);
     fprintf(stderr, "%lu\n", end - start);
-    printf("%lu\n", end - start);
+
+    // for (int i = 0; i < res_count; ++i) {
+    //     for (int j = 0; j < projection_count; ++j) {
+    //         int col = projections[j];
+    //         if (args->slct.cols[col].project) {
+    //             uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+    //             memcpy(result, row + offsets[col], width);
+    //         }
+    //     }
+    // }
+    free(result);
 }
 
 void slct_col(struct arguments *args) {
@@ -878,10 +908,10 @@ void slct_col(struct arguments *args) {
         res_count++;
     }
     clock_t end = clock();
-    free(result);
-    fprintf(stderr, "Result: %u\n", res_count);
+    logger("Result: %u\n", res_count);
+    logger("%lu\n", end - start);
     fprintf(stderr, "%lu\n", end - start);
-    printf("%lu\n", end - start);
+    free(result);
 }
 
 void slct_rme(struct arguments *args) {
@@ -951,10 +981,10 @@ void slct_rme(struct arguments *args) {
         row += plim_row_size;
     }
     clock_t end = clock();
-    free(result);
-    fprintf(stderr, "Result: %u\n", res_count);
+    logger("Result: %u\n", res_count);
+    logger("%lu\n", end - start);
     fprintf(stderr, "%lu\n", end - start);
-    printf("%lu\n", end - start);
+    free(result);
 }
 
 void slct(struct arguments *args) {
@@ -999,9 +1029,8 @@ void join_row(struct arguments *args) {
 
     // ************************* PLIM Hash Table2 Starts *****************************
     // Assuming maximum of 2 matching per col1 of first Table. The other 2 is for keeping all columns from BOTH tables
-    uint32_t join_result[256][2];
+    uint32_t *join_result = malloc(2 * sizeof(uint32_t) * args->join.r.row_count);
     uint32_t res_count = 0;
-    uint8_t j = 0;
     row = db2;
 
     // ************************* DRAM Hash Table2 Starts *****************************
@@ -1024,14 +1053,20 @@ void join_row(struct arguments *args) {
         if (!found) {
             continue;
         }
-        join_result[j][0] = val1;
-        join_result[j][1] = val2;
+        join_result[res_count] = val1;
         res_count++;
-        j = res_count;
+        join_result[res_count] = val2;
+        res_count++;
     }
-    fprintf(stderr, "Result: %u\n", res_count);
+    ht_free(ht);
+
+    logger("Result: %u\n", res_count / 2);
+    logger("%u\n", sum_access);
     fprintf(stderr, "%u\n", sum_access);
-    printf("%u\n", sum_access);
+//    for (int i = 0; i < res_count; i+=2) {
+//        fprintf(stderr, "%u,%u\n", join_result[i], join_result[i+1]);
+//    }
+    free(join_result);
 }
 
 void join_col(struct arguments *args) {
@@ -1064,9 +1099,8 @@ void join_col(struct arguments *args) {
 
     // ************************* PLIM Hash Table2 Starts *****************************
     // Assuming maximum of 2 matching per col1 of first Table. The other 2 is for keeping all columns from BOTH tables
-    uint32_t join_result[256][2];
+    uint32_t *join_result = malloc(2 * sizeof(uint32_t) * args->join.r.row_count);
     uint32_t res_count = 0;
-    uint8_t j = 0;
     offset = calc_offset(&args->join.r, args->join.r_join) * args->join.r.row_count;
     key_col = db2 + offset;
     offset = calc_offset(&args->join.r, args->join.r_sel) * args->join.r.row_count;
@@ -1091,14 +1125,20 @@ void join_col(struct arguments *args) {
         if (!found) {
             continue;
         }
-        join_result[j][0] = val1;
-        join_result[j][1] = val2;
+        join_result[res_count] = val1;
         res_count++;
-        j = res_count;
+        join_result[res_count] = val2;
+        res_count++;
     }
-    fprintf(stderr, "Result: %u\n", res_count);
+    ht_free(ht);
+
+    logger("Result: %u\n", res_count / 2);
+    logger("%u\n", sum_access);
     fprintf(stderr, "%u\n", sum_access);
-    printf("%u\n", sum_access);
+//    for (int i = 0; i < res_count; i+=2) {
+//        fprintf(stderr, "%u,%u\n", join_result[i], join_result[i+1]);
+//    }
+    free(join_result);
 }
 
 void join_rme(struct arguments *args) {
@@ -1137,9 +1177,8 @@ void join_rme(struct arguments *args) {
 
     // ************************* PLIM Hash Table2 Starts *****************************
     // Assuming maximum of 2 matching per col1 of first Table. The other 2 is for keeping all columns from BOTH tables
-    uint32_t join_result[256][2];
+    uint32_t *join_result = malloc(2 * sizeof(uint32_t) * args->join.r.row_count);
     uint32_t res_count = 0;
-    uint8_t j = 0;
     ptr = plim;
     for (int i = 0; i < args->join.r.row_count; i++) {
         start = clock();
@@ -1164,16 +1203,20 @@ void join_rme(struct arguments *args) {
         if (!found) {
             continue;
         }
-        join_result[j][0] = val1;
-        join_result[j][1] = val2;
+        join_result[res_count] = val1;
         res_count++;
-        j = res_count;
+        join_result[res_count] = val2;
+        res_count++;
     }
     ht_free(ht);
 
-    fprintf(stderr, "Result: %u\n", res_count);
+    logger("Result: %u\n", res_count / 2);
+    logger("%u\n", sum_access);
     fprintf(stderr, "%u\n", sum_access);
-    printf("%u\n", sum_access);
+//    for (int i = 0; i < res_count; i+=2) {
+//        fprintf(stderr, "%u,%u\n", join_result[i], join_result[i+1]);
+//    }
+    free(join_result);
 }
 
 void join(struct arguments *args) {
@@ -1197,7 +1240,7 @@ int main(int argc, char **argv) {
     db_init(&args);
 
     // do something
-    fprintf(stderr, "Running\n");
+    logger("Running\n");
     switch (args.query) {
         case Q_AVRG:
             avg(&args);

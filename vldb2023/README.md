@@ -8,7 +8,7 @@ gcc query.c -o query
 
 ## Run query
 
-Check [instruction for running a single query](RUNNING.md)
+Check the [instructions for running a single query](RUNNING.md)
 
 ## Deploy jupyter notebook
 
