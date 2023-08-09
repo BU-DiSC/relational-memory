@@ -21,11 +21,8 @@
 
 #define MAX_GROUPS    11
 
-//#ifndef __aarch64__
-//#define __aarch64__
-//#endif
-#ifndef MAP_32BIT
-#define MAP_32BIT 0x40
+#ifndef MAP_CACHE
+#define MAP_CACHE 0x40
 #endif
 
 /////////////////////////////////////////// JOIN ///////////////////////////////////////////
@@ -235,14 +232,14 @@ size_t calc_offset(struct table *t, uint8_t col) {
     return offset;
 }
 
-void *memmap(size_t len, off_t offset) {
+void *memmap(size_t len, off_t offset, unsigned long flag) {
 #ifdef __aarch64__
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd == -1) {
         fprintf(stderr, "Can't open /dev/mem.\n");
         exit(EXIT_FAILURE);
     }
-    void *ptr = mmap(NULL, len, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | MAP_32BIT, fd, offset);
+    void *ptr = mmap(NULL, len, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | flag, fd, offset);
     if (ptr == MAP_FAILED) {
         fprintf(stderr, "Error: mmap");
         exit(EXIT_FAILURE);
@@ -275,7 +272,7 @@ void db_reset(unsigned int frame_offset) {
 void db_config(struct arguments *args) {
     if (args->store != S_RME) return;
 
-    config = memmap(LPD0_SIZE, LPD0_ADDR);
+    config = memmap(LPD0_SIZE, LPD0_ADDR, 0);
     switch (args->query) {
         case Q_AVRG:
             config->row_size = args->avrg.s.row_size;
@@ -310,7 +307,7 @@ void db_config(struct arguments *args) {
     for (int i = 0; i < config->enabled_col_num; ++i) {
         logger("\toffset: %3hu width: %hu\n", config->col_offsets[i], config->col_widths[i]);
     }
-    plim = memmap(RELCACHE_SIZE, RELCACHE_ADDR);
+    plim = memmap(RELCACHE_SIZE, RELCACHE_ADDR, MAP_CACHE);
 }
 
 void db2_config(struct arguments *args) {
@@ -328,7 +325,7 @@ void db2_config(struct arguments *args) {
     for (int i = 0; i < config->enabled_col_num; ++i) {
         logger("\toffset: %3hu width: %hu\n", config->col_offsets[i], config->col_widths[i]);
     }
-    plim = memmap(RELCACHE_SIZE, RELCACHE_ADDR);
+    plim = memmap(RELCACHE_SIZE, RELCACHE_ADDR, MAP_CACHE);
 }
 
 void db_populate_col(struct table *t, void *data) {
@@ -387,7 +384,7 @@ void db_init(struct arguments *args) {
     // db generate
     db_size = s->row_count * s->row_size;
     logger("Allocating memory (%luB)\n", db_size);
-    db = memmap(db_size, DRAM_DB_ADDR);
+    db = memmap(db_size, DRAM_DB_ADDR, 0);
 
     if (args->store == S_COL) {
         logger("Populating column store\n");
@@ -403,7 +400,7 @@ void db_init(struct arguments *args) {
     }
 #ifdef __aarch64__
     memunmap(db, db_size);
-    db = memmap(db_size, DRAM_DB_ADDR);
+    db = memmap(db_size, DRAM_DB_ADDR, 0);
 #endif
 }
 
@@ -413,7 +410,7 @@ void db2_init(struct arguments *args) {
     // db generate
     db2_size = r->row_count * r->row_size;
     logger("Allocating memory (%luB)\n", db2_size);
-    db2 = memmap(db2_size, DRAM_DB2_ADDR);
+    db2 = memmap(db2_size, DRAM_DB2_ADDR, 0);
 
     if (args->store == S_COL) {
         logger("Populating column store\n");
@@ -429,7 +426,7 @@ void db2_init(struct arguments *args) {
     }
 #ifdef __aarch64__
     memunmap(db2, db2_size);
-    db2 = memmap(db2_size, DRAM_DB2_ADDR);
+    db2 = memmap(db2_size, DRAM_DB2_ADDR, 0);
 #endif
 }
 
