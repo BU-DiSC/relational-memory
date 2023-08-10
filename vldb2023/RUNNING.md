@@ -3,12 +3,12 @@
 ## Average query
 
 ```sh
-./query [-v] store q1 ncols widths avg_col
+./query [-q] store q1 ncols widths avg_col
 # E.g.:
 ./query ROW q1 32768 4 4,4,4,4 2
 # SELECT AVG(c2) FROM S;
 ```
-- -v: verbose [Optional]
+- -q: quiet [Optional]
 - store: ROW|COL|RME
 - ncols: number of columns
 - widths: ncols comma separated values [1|2|4|8]
@@ -17,12 +17,12 @@
 ## Projection & Selection query
 
 ```sh
-./query [-v] store q2 ncols widths nopts options
+./query [-q] store q2 ncols widths nopts options
 # E.g.:
 ./query ROW q2 32768 4 4,4,4,4 3 0PX,1PL400,2XL200
 # SELECT c0, c1 FROM S WHERE c1 < 400 AND c2 < 200;
 ```
-- -v: verbose [Optional]
+- -q: quiet [Optional]
 - store: ROW|COL|RME
 - ncols: number of columns
 - widths: ncols comma separated values [1|2|4|8]
@@ -39,12 +39,12 @@
 ## Join query
 
 ```sh
-./query [-v] store q3 s_ncols s_widths r_ncols r_widths s_sel r_sel s_join r_join
+./query [-q] store q3 s_ncols s_widths r_ncols r_widths s_sel r_sel s_join r_join
 # E.g.:
 ./query ROW q3 32768 3 4,4,4 32768 3 4,4,4 1 1 0 2
 # SELECT S.c1, R.c1 FROM S, R WHERE S.c0 = R.c2;
 ```
-- -v: verbose [Optional]
+- -q: quiet [Optional]
 - store: ROW|COL|RME
 - s_ncols: number of columns for table S
 - s_widths: s_ncols comma separated values for table S [1|2|4|8]
@@ -59,4 +59,4 @@
 
 ## Output
 
-The first line of the output is the execution time, the rest of the output is a csv file containing the results of the query.
+Return the messured time on stdout and verbose output on stderr.

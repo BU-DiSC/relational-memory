@@ -219,7 +219,7 @@ void logger(const char *format, ...) {
     if (verbose > 0) {
         va_list args;
         va_start(args, format);
-        vprintf(format, args);
+        vfprintf(stderr, format, args);
         va_end(args);
     }
 }
@@ -650,9 +650,11 @@ void avg_row(struct arguments *args) {
         res = avg_uint64_row(db + offset, args->avrg.s.row_count, args->avrg.s.row_size);
         end = clock();
     }
-    logger("Result: %lu\n", res);
-    logger("%lu\n", end - start);
-    fprintf(stderr, "%lu\n", end - start);
+    logger("Result rows: 1\n");
+    logger("Execution time: %lu\n", end - start);
+    logger("Avg(c%hhu)\n", args->avrg.col);
+    logger("%lu\n", res);
+    fprintf(stdout, "%lu\n", end - start);
 }
 
 uint8_t avg_uint8_col(const uint8_t *col, uint32_t row_count) {
@@ -711,9 +713,11 @@ void avg_col(struct arguments *args) {
         res = avg_uint64_col(db + offset, args->avrg.s.row_count);
         end = clock();
     }
-    logger("Result: %lu\n", res);
-    logger("%lu\n", end - start);
-    fprintf(stderr, "%lu\n", end - start);
+    logger("Result rows: 1\n");
+    logger("Execution time: %lu\n", end - start);
+    logger("Avg(c%hhu)\n", args->avrg.col);
+    logger("Result rows: %lu\n", res);
+    fprintf(stdout, "%lu\n", end - start);
 }
 
 void avg_rme(struct arguments *args) {
@@ -736,9 +740,11 @@ void avg_rme(struct arguments *args) {
         res = avg_uint64_col(plim, args->avrg.s.row_count);
         end = clock();
     }
-    logger("Result: %lu\n", res);
-    logger("%lu\n", end - start);
-    fprintf(stderr, "%lu\n", end - start);
+    logger("Result rows: 1\n");
+    logger("Execution time: %lu\n", end - start);
+    logger("Avg(c%hhu)\n", args->avrg.col);
+    logger("Result rows: %lu\n", res);
+    fprintf(stdout, "%lu\n", end - start);
 }
 
 void avg(struct arguments *args) {
@@ -824,10 +830,8 @@ void slct_row(struct arguments *args) {
     }
     clock_t end = clock();
 
-    logger("Result: %u\n", res_count);
-    logger("%lu\n", end - start);
-    fprintf(stderr, "%lu\n", end - start);
-
+    logger("Result rows: %u\n", res_count);
+    logger("Execution time: %lu\n", end - start);
     for (int j = 0; j < projection_count; ++j) {
         int col = projections[j];
         logger("c%hhu ", args->slct.cols[col].col);
@@ -868,6 +872,7 @@ void slct_row(struct arguments *args) {
         logger("\n");
     }
     free(result);
+    fprintf(stdout, "%lu\n", end - start);
 }
 
 void slct_col(struct arguments *args) {
@@ -938,10 +943,8 @@ void slct_col(struct arguments *args) {
         res_count++;
     }
     clock_t end = clock();
-    logger("Result: %u\n", res_count);
-    logger("%lu\n", end - start);
-    fprintf(stderr, "%lu\n", end - start);
-
+    logger("Result rows: %u\n", res_count);
+    logger("Execution time: %lu\n", end - start);
     for (int j = 0; j < projection_count; ++j) {
         int col = projections[j];
         logger("c%hhu ", args->slct.cols[col].col);
@@ -982,6 +985,7 @@ void slct_col(struct arguments *args) {
         logger("\n");
     }
     free(result);
+    fprintf(stdout, "%lu\n", end - start);
 }
 
 void slct_rme(struct arguments *args) {
@@ -1054,10 +1058,8 @@ void slct_rme(struct arguments *args) {
         row += plim_row_size;
     }
     clock_t end = clock();
-    logger("Result: %u\n", res_count);
-    logger("%lu\n", end - start);
-    fprintf(stderr, "%lu\n", end - start);
-
+    logger("Result rows: %u\n", res_count);
+    logger("Execution time: %lu\n", end - start);
     for (int j = 0; j < projection_count; ++j) {
         int col = projections[j];
         logger("c%hhu ", args->slct.cols[col].col);
@@ -1098,6 +1100,7 @@ void slct_rme(struct arguments *args) {
         logger("\n");
     }
     free(result);
+    fprintf(stdout, "%lu\n", end - start);
 }
 
 void slct(struct arguments *args) {
@@ -1173,15 +1176,15 @@ void join_row(struct arguments *args) {
     }
     ht_free(ht);
 
-    logger("Result: %u\n", res_count / 2);
-    logger("%u\n", sum_access);
-    fprintf(stderr, "%u\n", sum_access);
+    logger("Result rows: %u\n", res_count / 2);
+    logger("Execution time: %u\n", sum_access);
 
     logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
     for (int i = 0; i < res_count; i+=2) {
         logger("%u %u\n", join_result[i], join_result[i+1]);
     }
     free(join_result);
+    fprintf(stdout, "%u\n", sum_access);
 }
 
 void join_col(struct arguments *args) {
@@ -1247,15 +1250,14 @@ void join_col(struct arguments *args) {
     }
     ht_free(ht);
 
-    logger("Result: %u\n", res_count / 2);
-    logger("%u\n", sum_access);
-    fprintf(stderr, "%u\n", sum_access);
-
+    logger("Result rows: %u\n", res_count / 2);
+    logger("Execution time: %u\n", sum_access);
     logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
     for (int i = 0; i < res_count; i+=2) {
         logger("%u %u\n", join_result[i], join_result[i+1]);
     }
     free(join_result);
+    fprintf(stdout, "%u\n", sum_access);
 }
 
 void join_rme(struct arguments *args) {
@@ -1335,15 +1337,14 @@ void join_rme(struct arguments *args) {
     }
     ht_free(ht);
 
-    logger("Result: %u\n", res_count / 2);
-    logger("%u\n", sum_access);
-    fprintf(stderr, "%u\n", sum_access);
-
+    logger("Result rows: %u\n", res_count / 2);
+    logger("Execution time: %u\n", sum_access);
     logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
     for (int i = 0; i < res_count; i+=2) {
         logger("%u %u\n", join_result[i], join_result[i+1]);
     }
     free(join_result);
+    fprintf(stdout, "%u\n", sum_access);
 }
 
 void join(struct arguments *args) {
