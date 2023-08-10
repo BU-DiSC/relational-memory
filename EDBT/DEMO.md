@@ -19,9 +19,9 @@
 ## S3. Scalability of RME
 
 - running the experiment
-> ./sources_bash/experiment_tpch.sh
+> ./sources_bash/experiment_scale.sh
 - creating the figures
-> python3 ./plotting/tpch/plot.py
+> python3 ./plotting/scale/plot.py
 
 ## S4. Join Queries
 
