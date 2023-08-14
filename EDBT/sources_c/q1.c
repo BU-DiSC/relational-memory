@@ -1,9 +1,11 @@
 #define _GNU_SOURCE
 #include "query_header.h"
+#include "../include/performance_counters.h"
 
 int main(int argc, char** argv) {
     struct _config config;
     unsigned int cycleHi    = 0, cycleLo=0;    
+    struct perf_counters res, start, end;
 
     // -- pasring arguments -------------------------------------------
     int opt;
@@ -81,6 +83,7 @@ int main(int argc, char** argv) {
     T data;
 
     // move multiplication outside
+    pmcs_get_value(&start);
     magic_timing_begin(&cycleLo, &cycleHi);
     for(int i = 0; i < config.row_count; i++){
       for (int j = 0; j < config.enabled_col_num; j++)
@@ -90,8 +93,11 @@ int main(int argc, char** argv) {
     }
       
     magic_timing_end(&cycleLo, &cycleHi);
-    printf("q1, r, c, %d, %d, %d, %d\n", config.row_size, config.row_count, config.col_widths[0], cycleLo);
+    pmcs_get_value(&end);
+    res = pmcs_diff(&end, &start);
+    printf("q1, r, c, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", config.row_size, config.row_count, config.col_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
 
+    pmcs_get_value(&start);
     magic_timing_begin(&cycleLo, &cycleHi);
     for(int i = 0; i < config.row_count; i++){
       for (int j = 0; j < config.enabled_col_num; j++)
@@ -101,20 +107,25 @@ int main(int argc, char** argv) {
     }
       
     magic_timing_end(&cycleLo, &cycleHi);
-    printf("q1, r, h, %d, %d, %d, %d\n", config.row_size, config.row_count, config.col_widths[0], cycleLo);
+    pmcs_get_value(&end);
+    res = pmcs_diff(&end, &start);
+    printf("q1, r, h, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", config.row_size, config.row_count, config.col_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
 
-   magic_timing_begin(&cycleLo, &cycleHi);
+    pmcs_get_value(&start);
+    magic_timing_begin(&cycleLo, &cycleHi);
     for(int i = 0; i < config.row_count; i++){
       for(int j=0; j<config.enabled_col_num; j++){
           data = dram[(i*config.row_size + config.col_offsets[j])/sizeof(T) + (int)config.frame_offset];
       }
     }
     magic_timing_end(&cycleLo, &cycleHi);
-
-    printf("q1, d, -, %d, %d, %d, %d\n", config.row_size, config.row_count, config.col_widths[0], cycleLo);
+    pmcs_get_value(&end);
+    res = pmcs_diff(&end, &start);
+    printf("q1, d, -, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", config.row_size, config.row_count, config.col_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
 
     T* result = (T *)malloc(config.enabled_col_num * sizeof(T));
 
+    pmcs_get_value(&start);
     magic_timing_begin(&cycleLo, &cycleHi);
     for(int i = 0; i < config.row_count; i++)
     {
@@ -123,8 +134,9 @@ int main(int argc, char** argv) {
       memcpy(result + 2, (dram + i + 4*config.row_count), sizeof(T));
     }
     magic_timing_end(&cycleLo, &cycleHi);
-
-    printf("q1, c, -, %d, %d, %d, %d\n", config.row_size, config.row_count, config.col_widths[0], cycleLo);
+    pmcs_get_value(&end);
+    res = pmcs_diff(&end, &start);
+    printf("q1, c, -, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", config.row_size, config.row_count, config.col_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
     
     return 0;
 }
