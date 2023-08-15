@@ -264,9 +264,6 @@ void db_reset(unsigned int frame_offset) {
     config->frame_offset = frame_offset;
     config->reset = (config->reset + 1) & 0x1;
     dsb();
-    config->frame_offset = frame_offset;
-    config->reset = (config->reset + 1) & 0x1;
-    dsb();
 }
 
 void db_config(struct arguments *args) {
@@ -276,14 +273,14 @@ void db_config(struct arguments *args) {
     switch (args->query) {
         case Q_AVRG:
             config->row_size = args->avrg.s.row_size;
-            config->row_count = args->avrg.s.row_count;
+            config->row_count = args->avrg.s.row_count + 64;
             config->enabled_col_num = 1;
             config->col_offsets[0] = calc_offset(&args->avrg.s, args->avrg.col);
             config->col_widths[0] = args->avrg.s.widths[args->avrg.col];
             break;
         case Q_SLCT:
             config->row_size = args->slct.s.row_size;
-            config->row_count = args->slct.s.row_count;
+            config->row_count = args->slct.s.row_count + 64;
             config->enabled_col_num = args->slct.num_cols;
             for (int i = 0; i < args->slct.num_cols; ++i) {
                 config->col_offsets[i] = calc_offset(&args->slct.s, args->slct.cols[i].col);
@@ -292,7 +289,7 @@ void db_config(struct arguments *args) {
             break;
         case Q_JOIN:
             config->row_size = args->join.s.row_size;
-            config->row_count = args->join.s.row_count;
+            config->row_count = args->join.s.row_count + 64;
             config->enabled_col_num = 2;
             config->col_widths[SEL_COL] = args->join.s.widths[args->join.s_sel];
             config->col_widths[JOIN_COL] = args->join.s.widths[args->join.s_join];
@@ -312,7 +309,7 @@ void db_config(struct arguments *args) {
 
 void db2_config(struct arguments *args) {
     config->row_size = args->join.r.row_size;
-    config->row_count = args->join.r.row_count;
+    config->row_count = args->join.r.row_count + 64;
     config->enabled_col_num = 2;
     config->col_offsets[SEL_COL] = calc_offset(&args->join.r, args->join.r_sel);
     config->col_widths[SEL_COL] = args->join.r.widths[args->join.r_sel];
@@ -332,7 +329,7 @@ void db_populate_col(struct table *t, void *data) {
     for (int i = 0; i < t->row_count; ++i) {
         size_t col_offset = 0;
         for (int j = 0; j < t->num_cols; ++j) {
-            uint64_t val = i + j;
+            uint64_t val = 100 * i + j;
             size_t offset = col_offset + i * t->widths[j];
             if (t->widths[j] == 1) {
                 *(uint8_t *) (data + offset) = val;
@@ -352,7 +349,7 @@ void db_populate_row(struct table *t, void *data) {
     size_t offset = 0;
     for (int i = 0; i < t->row_count; ++i) {
         for (int j = 0; j < t->num_cols; ++j) {
-            uint64_t val = i + j;
+            uint64_t val = 100 * i + j;
             if (t->widths[j] == 1) {
                 *(uint8_t *) (data + offset) = val;
             } else if (t->widths[j] == 2) {
