@@ -271,23 +271,30 @@ void db_config(struct arguments *args) {
 
     config = memmap(LPD0_SIZE, LPD0_ADDR, 0);
     switch (args->query) {
-        case Q_AVRG:
+        case Q_AVRG: {
             config->row_size = args->avrg.s.row_size;
             config->row_count = args->avrg.s.row_count + 64;
             config->enabled_col_num = 1;
             config->col_offsets[0] = calc_offset(&args->avrg.s, args->avrg.col);
             config->col_widths[0] = args->avrg.s.widths[args->avrg.col];
             break;
-        case Q_SLCT:
+        }
+        case Q_SLCT: {
             config->row_size = args->slct.s.row_size;
             config->row_count = args->slct.s.row_count + 64;
             config->enabled_col_num = args->slct.num_cols;
-            for (int i = 0; i < args->slct.num_cols; ++i) {
-                config->col_offsets[i] = calc_offset(&args->slct.s, args->slct.cols[i].col);
+            config->col_offsets[0] = calc_offset(&args->slct.s, args->slct.cols[0].col);
+            config->col_widths[0] = args->slct.s.widths[args->slct.cols[0].col];
+            unsigned short prev_abs_offset = config->col_offsets[0];
+            for (int i = 1; i < args->slct.num_cols; ++i) {
+                unsigned short abs_offset = calc_offset(&args->slct.s, args->slct.cols[i].col);
+                config->col_offsets[i] = abs_offset - prev_abs_offset;
                 config->col_widths[i] = args->slct.s.widths[args->slct.cols[i].col];
+                prev_abs_offset = abs_offset;
             }
             break;
-        case Q_JOIN:
+        }
+        case Q_JOIN: {
             config->row_size = args->join.s.row_size;
             config->row_count = args->join.s.row_count + 64;
             config->enabled_col_num = 2;
@@ -296,6 +303,7 @@ void db_config(struct arguments *args) {
             config->col_offsets[SEL_COL] = calc_offset(&args->join.s, args->join.s_sel);
             config->col_offsets[JOIN_COL] = calc_offset(&args->join.s, args->join.s_join);
             break;
+        }
     }
 
     config->frame_offset = 0x0;
