@@ -8,11 +8,13 @@
 > cd ~/sources_bash
 >
 > bash experiment_q1.sh
+>
+> \# copy the result file to the host machine PLT_result_q1_col.csv
 
 - creating the figure
 > cd ./plotting/queries_experiment/
 >
-> python3 plot.py
+> python3 demo.py
 
 ## S2. MVCC Transactions
 
@@ -22,13 +24,13 @@
 > cd ~/sources_bash
 >
 > bash experiment_mvcc.sh
+>
+> \# copy the result file to the host machine result_projectivity.csv
 
 - creating the figures
 > cd ./plotting/queries_experiment/
 >
-> python3 plot.py
->
-> python3 mvcc.py
+> python3 demo.py
 
 ## S3. Scalability of RME
 
@@ -38,6 +40,8 @@
 > cd ~/sources_bash
 >
 > bash experiment_scale.sh
+>
+> \# copy the result file to the host machine result_scale.csv
 
 - creating the figures
 > cd ./plotting/scale
