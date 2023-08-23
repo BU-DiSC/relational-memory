@@ -30,7 +30,7 @@
 - creating the figures
 > cd ./plotting/queries_experiment/
 >
-> python3 demo.py
+> python3 mvcc.py
 
 ## S3. Scalability of RME
 
