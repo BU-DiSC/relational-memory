@@ -28,7 +28,7 @@
 > \# copy the result file to the host machine PLT_result_mvcc.csv
 
 - creating the figures
-> cd ./plotting/queries_experiment/
+> cd ./plotting/projectivity/
 >
 > python3 mvcc.py
 
