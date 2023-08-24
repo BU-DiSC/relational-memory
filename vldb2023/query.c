@@ -697,7 +697,7 @@ uint64_t avg_uint64_col(const uint64_t *col, uint32_t row_count) {
 }
 
 void avg_col(struct arguments *args) {
-    size_t offset = calc_offset(&args->avrg.r, args->avrg.col) * args->avrg.s.row_count;
+    size_t offset = calc_offset(&args->avrg.s, args->avrg.col) * args->avrg.s.row_count;
     uint64_t res = 0;
     clock_t start = 0, end = 0;
     if (args->avrg.s.widths[args->avrg.col] == 1) {
