@@ -657,8 +657,10 @@ void avg_row(struct arguments *args) {
     }
     logger("Result rows: 1\n");
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     logger("Avg(c%hhu)\n", args->avrg.col);
     logger("%lu\n", res);
+#endif
     fprintf(stdout, "%lu\n", end - start);
 }
 
@@ -695,10 +697,7 @@ uint64_t avg_uint64_col(const uint64_t *col, uint32_t row_count) {
 }
 
 void avg_col(struct arguments *args) {
-    size_t offset = 0;
-    for (int i = 0; i < args->avrg.col; ++i) {
-        offset += args->avrg.s.widths[i] * args->avrg.s.row_count;
-    }
+    size_t offset = calc_offset(&args->avrg.r, args->avrg.col) * args->avrg.s.row_count;
     uint64_t res = 0;
     clock_t start = 0, end = 0;
     if (args->avrg.s.widths[args->avrg.col] == 1) {
@@ -720,8 +719,10 @@ void avg_col(struct arguments *args) {
     }
     logger("Result rows: 1\n");
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     logger("Avg(c%hhu)\n", args->avrg.col);
-    logger("Result rows: %lu\n", res);
+    logger("%lu\n", res);
+#endif
     fprintf(stdout, "%lu\n", end - start);
 }
 
@@ -747,8 +748,10 @@ void avg_rme(struct arguments *args) {
     }
     logger("Result rows: 1\n");
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     logger("Avg(c%hhu)\n", args->avrg.col);
-    logger("Result rows: %lu\n", res);
+    logger("%lu\n", res);
+#endif
     fprintf(stdout, "%lu\n", end - start);
 }
 
@@ -837,6 +840,7 @@ void slct_row(struct arguments *args) {
 
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     for (int j = 0; j < projection_count; ++j) {
         int col = projections[j];
         logger("c%hhu ", args->slct.cols[col].col);
@@ -876,6 +880,7 @@ void slct_row(struct arguments *args) {
         }
         logger("\n");
     }
+#endif
     free(result);
     fprintf(stdout, "%lu\n", end - start);
 }
@@ -950,6 +955,7 @@ void slct_col(struct arguments *args) {
     clock_t end = clock();
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     for (int j = 0; j < projection_count; ++j) {
         int col = projections[j];
         logger("c%hhu ", args->slct.cols[col].col);
@@ -989,6 +995,7 @@ void slct_col(struct arguments *args) {
         }
         logger("\n");
     }
+#endif
     free(result);
     fprintf(stdout, "%lu\n", end - start);
 }
@@ -1065,6 +1072,7 @@ void slct_rme(struct arguments *args) {
     clock_t end = clock();
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     for (int j = 0; j < projection_count; ++j) {
         int col = projections[j];
         logger("c%hhu ", args->slct.cols[col].col);
@@ -1104,6 +1112,7 @@ void slct_rme(struct arguments *args) {
         }
         logger("\n");
     }
+#endif
     free(result);
     fprintf(stdout, "%lu\n", end - start);
 }
@@ -1183,11 +1192,12 @@ void join_row(struct arguments *args) {
 
     logger("Result rows: %u\n", res_count / 2);
     logger("Execution time: %u\n", sum_access);
-
+#ifdef PRINT_RES
     logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
     for (int i = 0; i < res_count; i+=2) {
         logger("%u %u\n", join_result[i], join_result[i+1]);
     }
+#endif
     free(join_result);
     fprintf(stdout, "%u\n", sum_access);
 }
@@ -1257,10 +1267,12 @@ void join_col(struct arguments *args) {
 
     logger("Result rows: %u\n", res_count / 2);
     logger("Execution time: %u\n", sum_access);
+#ifdef PRINT_RES
     logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
     for (int i = 0; i < res_count; i+=2) {
         logger("%u %u\n", join_result[i], join_result[i+1]);
     }
+#endif
     free(join_result);
     fprintf(stdout, "%u\n", sum_access);
 }
@@ -1294,15 +1306,6 @@ void join_rme(struct arguments *args) {
     // ************************* PLIM Hash Table1 Ends *****************************
     memunmap(plim, RELCACHE_SIZE);
 
-//    for (int i = 0; i < 10; ++i) {
-//        struct ll_node *node = ht->buckets[i].head;
-//        if (node) {
-//            struct ht_item *item = node->item;
-//            logger("> %u %u\n", item->key, item->value);
-//        } else {
-//            logger("> -\n");
-//        }
-//    }
     //************************************* POPULATE 2 *******************************************
     db2_init(args);
 
@@ -1334,7 +1337,6 @@ void join_rme(struct arguments *args) {
         if (!found) {
             continue;
         }
-//        logger("Match %u\n", key);
         join_result[res_count] = val1;
         res_count++;
         join_result[res_count] = val2;
@@ -1344,10 +1346,12 @@ void join_rme(struct arguments *args) {
 
     logger("Result rows: %u\n", res_count / 2);
     logger("Execution time: %u\n", sum_access);
+#ifdef PRINT_RES
     logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
     for (int i = 0; i < res_count; i+=2) {
         logger("%u %u\n", join_result[i], join_result[i+1]);
     }
+#endif
     free(join_result);
     fprintf(stdout, "%u\n", sum_access);
 }
