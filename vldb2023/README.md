@@ -22,3 +22,13 @@ The [notebook](demo.ipynb) will install the rest of the requirements
 ### IP address
 
 Set the ip address of the fpga device on the ipynb file.
+
+### .ssh/config
+
+Add the following configuration to your .ssh/config file:
+```sshconfig
+Host 10.210.1.*
+    User root
+    HostKeyAlgorithms +ssh-rsa
+    PubkeyAcceptedKeyTypes +ssh-rsa
+```

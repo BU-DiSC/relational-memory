@@ -264,9 +264,6 @@ void db_reset(unsigned int frame_offset) {
     config->frame_offset = frame_offset;
     config->reset = (config->reset + 1) & 0x1;
     dsb();
-    config->frame_offset = frame_offset;
-    config->reset = (config->reset + 1) & 0x1;
-    dsb();
 }
 
 void db_config(struct arguments *args) {
@@ -274,31 +271,39 @@ void db_config(struct arguments *args) {
 
     config = memmap(LPD0_SIZE, LPD0_ADDR, 0);
     switch (args->query) {
-        case Q_AVRG:
+        case Q_AVRG: {
             config->row_size = args->avrg.s.row_size;
-            config->row_count = args->avrg.s.row_count;
+            config->row_count = args->avrg.s.row_count + 64;
             config->enabled_col_num = 1;
             config->col_offsets[0] = calc_offset(&args->avrg.s, args->avrg.col);
             config->col_widths[0] = args->avrg.s.widths[args->avrg.col];
             break;
-        case Q_SLCT:
+        }
+        case Q_SLCT: {
             config->row_size = args->slct.s.row_size;
-            config->row_count = args->slct.s.row_count;
+            config->row_count = args->slct.s.row_count + 64;
             config->enabled_col_num = args->slct.num_cols;
-            for (int i = 0; i < args->slct.num_cols; ++i) {
-                config->col_offsets[i] = calc_offset(&args->slct.s, args->slct.cols[i].col);
+            config->col_offsets[0] = calc_offset(&args->slct.s, args->slct.cols[0].col);
+            config->col_widths[0] = args->slct.s.widths[args->slct.cols[0].col];
+            unsigned short prev_abs_offset = config->col_offsets[0];
+            for (int i = 1; i < args->slct.num_cols; ++i) {
+                unsigned short abs_offset = calc_offset(&args->slct.s, args->slct.cols[i].col);
+                config->col_offsets[i] = abs_offset - prev_abs_offset;
                 config->col_widths[i] = args->slct.s.widths[args->slct.cols[i].col];
+                prev_abs_offset = abs_offset;
             }
             break;
-        case Q_JOIN:
+        }
+        case Q_JOIN: {
             config->row_size = args->join.s.row_size;
-            config->row_count = args->join.s.row_count;
+            config->row_count = args->join.s.row_count + 64;
             config->enabled_col_num = 2;
             config->col_widths[SEL_COL] = args->join.s.widths[args->join.s_sel];
             config->col_widths[JOIN_COL] = args->join.s.widths[args->join.s_join];
             config->col_offsets[SEL_COL] = calc_offset(&args->join.s, args->join.s_sel);
             config->col_offsets[JOIN_COL] = calc_offset(&args->join.s, args->join.s_join);
             break;
+        }
     }
 
     config->frame_offset = 0x0;
@@ -312,7 +317,7 @@ void db_config(struct arguments *args) {
 
 void db2_config(struct arguments *args) {
     config->row_size = args->join.r.row_size;
-    config->row_count = args->join.r.row_count;
+    config->row_count = args->join.r.row_count + 64;
     config->enabled_col_num = 2;
     config->col_offsets[SEL_COL] = calc_offset(&args->join.r, args->join.r_sel);
     config->col_widths[SEL_COL] = args->join.r.widths[args->join.r_sel];
@@ -332,7 +337,7 @@ void db_populate_col(struct table *t, void *data) {
     for (int i = 0; i < t->row_count; ++i) {
         size_t col_offset = 0;
         for (int j = 0; j < t->num_cols; ++j) {
-            uint64_t val = i + j;
+            uint64_t val = 100 * i + j;
             size_t offset = col_offset + i * t->widths[j];
             if (t->widths[j] == 1) {
                 *(uint8_t *) (data + offset) = val;
@@ -352,7 +357,7 @@ void db_populate_row(struct table *t, void *data) {
     size_t offset = 0;
     for (int i = 0; i < t->row_count; ++i) {
         for (int j = 0; j < t->num_cols; ++j) {
-            uint64_t val = i + j;
+            uint64_t val = 100 * i + j;
             if (t->widths[j] == 1) {
                 *(uint8_t *) (data + offset) = val;
             } else if (t->widths[j] == 2) {
@@ -652,8 +657,10 @@ void avg_row(struct arguments *args) {
     }
     logger("Result rows: 1\n");
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     logger("Avg(c%hhu)\n", args->avrg.col);
     logger("%lu\n", res);
+#endif
     fprintf(stdout, "%lu\n", end - start);
 }
 
@@ -690,10 +697,7 @@ uint64_t avg_uint64_col(const uint64_t *col, uint32_t row_count) {
 }
 
 void avg_col(struct arguments *args) {
-    size_t offset = 0;
-    for (int i = 0; i < args->avrg.col; ++i) {
-        offset += args->avrg.s.widths[i] * args->avrg.s.row_count;
-    }
+    size_t offset = calc_offset(&args->avrg.s, args->avrg.col) * args->avrg.s.row_count;
     uint64_t res = 0;
     clock_t start = 0, end = 0;
     if (args->avrg.s.widths[args->avrg.col] == 1) {
@@ -715,8 +719,10 @@ void avg_col(struct arguments *args) {
     }
     logger("Result rows: 1\n");
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     logger("Avg(c%hhu)\n", args->avrg.col);
-    logger("Result rows: %lu\n", res);
+    logger("%lu\n", res);
+#endif
     fprintf(stdout, "%lu\n", end - start);
 }
 
@@ -742,8 +748,10 @@ void avg_rme(struct arguments *args) {
     }
     logger("Result rows: 1\n");
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     logger("Avg(c%hhu)\n", args->avrg.col);
-    logger("Result rows: %lu\n", res);
+    logger("%lu\n", res);
+#endif
     fprintf(stdout, "%lu\n", end - start);
 }
 
@@ -832,6 +840,7 @@ void slct_row(struct arguments *args) {
 
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     for (int j = 0; j < projection_count; ++j) {
         int col = projections[j];
         logger("c%hhu ", args->slct.cols[col].col);
@@ -871,6 +880,7 @@ void slct_row(struct arguments *args) {
         }
         logger("\n");
     }
+#endif
     free(result);
     fprintf(stdout, "%lu\n", end - start);
 }
@@ -945,6 +955,7 @@ void slct_col(struct arguments *args) {
     clock_t end = clock();
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     for (int j = 0; j < projection_count; ++j) {
         int col = projections[j];
         logger("c%hhu ", args->slct.cols[col].col);
@@ -984,6 +995,7 @@ void slct_col(struct arguments *args) {
         }
         logger("\n");
     }
+#endif
     free(result);
     fprintf(stdout, "%lu\n", end - start);
 }
@@ -1060,6 +1072,7 @@ void slct_rme(struct arguments *args) {
     clock_t end = clock();
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
+#ifdef PRINT_RES
     for (int j = 0; j < projection_count; ++j) {
         int col = projections[j];
         logger("c%hhu ", args->slct.cols[col].col);
@@ -1099,6 +1112,7 @@ void slct_rme(struct arguments *args) {
         }
         logger("\n");
     }
+#endif
     free(result);
     fprintf(stdout, "%lu\n", end - start);
 }
@@ -1178,11 +1192,12 @@ void join_row(struct arguments *args) {
 
     logger("Result rows: %u\n", res_count / 2);
     logger("Execution time: %u\n", sum_access);
-
+#ifdef PRINT_RES
     logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
     for (int i = 0; i < res_count; i+=2) {
         logger("%u %u\n", join_result[i], join_result[i+1]);
     }
+#endif
     free(join_result);
     fprintf(stdout, "%u\n", sum_access);
 }
@@ -1252,10 +1267,12 @@ void join_col(struct arguments *args) {
 
     logger("Result rows: %u\n", res_count / 2);
     logger("Execution time: %u\n", sum_access);
+#ifdef PRINT_RES
     logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
     for (int i = 0; i < res_count; i+=2) {
         logger("%u %u\n", join_result[i], join_result[i+1]);
     }
+#endif
     free(join_result);
     fprintf(stdout, "%u\n", sum_access);
 }
@@ -1289,15 +1306,6 @@ void join_rme(struct arguments *args) {
     // ************************* PLIM Hash Table1 Ends *****************************
     memunmap(plim, RELCACHE_SIZE);
 
-//    for (int i = 0; i < 10; ++i) {
-//        struct ll_node *node = ht->buckets[i].head;
-//        if (node) {
-//            struct ht_item *item = node->item;
-//            logger("> %u %u\n", item->key, item->value);
-//        } else {
-//            logger("> -\n");
-//        }
-//    }
     //************************************* POPULATE 2 *******************************************
     db2_init(args);
 
@@ -1329,7 +1337,6 @@ void join_rme(struct arguments *args) {
         if (!found) {
             continue;
         }
-//        logger("Match %u\n", key);
         join_result[res_count] = val1;
         res_count++;
         join_result[res_count] = val2;
@@ -1339,10 +1346,12 @@ void join_rme(struct arguments *args) {
 
     logger("Result rows: %u\n", res_count / 2);
     logger("Execution time: %u\n", sum_access);
+#ifdef PRINT_RES
     logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
     for (int i = 0; i < res_count; i+=2) {
         logger("%u %u\n", join_result[i], join_result[i+1]);
     }
+#endif
     free(join_result);
     fprintf(stdout, "%u\n", sum_access);
 }

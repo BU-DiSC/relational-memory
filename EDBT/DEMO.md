@@ -25,12 +25,12 @@
 >
 > bash experiment_mvcc.sh
 >
-> \# copy the result file to the host machine result_projectivity.csv
+> \# copy the result file to the host machine PLT_result_mvcc.csv
 
 - creating the figures
-> cd ./plotting/queries_experiment/
+> cd ./plotting/projectivity/
 >
-> python3 demo.py
+> python3 mvcc.py
 
 ## S3. Scalability of RME
 

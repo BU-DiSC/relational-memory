@@ -22,7 +22,7 @@ def read(filepath, skip):
             #res.setdefault(mem.strip(),dict()).setdefault(temp.strip(), dict()).setdefault(int(col_width.strip(    )), []).append(int(cycles))
     return res
 
-def generate_full_plot(figsize):
+def generate_full_plot(figsize, m, filename):
     plt.clf()
     plt.rcParams.update({'font.size': 14})
     values = {}
@@ -48,12 +48,17 @@ def generate_full_plot(figsize):
     x = np.arange(len(labels_str))  # the label locations
     width = 0.20  # the width of the bars
 
-    print(values['v4']['d'][0]['avg'])
+    #print(values['v4']['d'][m]['avg'])
+    #print(values['v4']['r'][m]['avg'])
+    #print(values['v4']['c'][m]['avg'])
+    #print(values['v4']['d'][m]['std'])
+    #print(values['v4']['r'][m]['std'])
+    #print(values['v4']['c'][m]['std'])
 
     fig, ax = plt.subplots(figsize=figsize)
-    ax.plot([-0.5, len(labels_str)-0.5], [1.0,1.0], label="DRS", color=cmap(rescale(0)))
-    ax.bar(x + -0.5*width*1.5,  np.divide(values['v4']['c'][1]['avg'], values['v4']['d'][1]['avg']), width*1.5, yerr=np.divide(values['v4']['c'][1]['std'],values['v4']['d'][1]['avg']), color=cmap(rescale(3)), label="DCS", edgecolor='black')
-    ax.bar(x +  0.5*width*1.5,  np.divide(values['v4']['r'][1]['avg'], values['v4']['d'][1]['avg']), width*1.5, yerr=np.divide(values['v4']['r'][1]['std'],values['v4']['d'][1]['avg']), color=cmap(rescale(1)), label="RME Cold")
+    ax.plot([-0.5, len(labels_str)-0.5], [1.0,1.0], label="ROW", color=cmap(rescale(0)))
+    ax.bar(x + -0.5*width*1.5,  np.divide(values['v4']['c'][m]['avg'], values['v4']['d'][m]['avg']), width*1.5, yerr=np.divide(values['v4']['c'][m]['std'],values['v4']['d'][m]['avg']), color=cmap(rescale(3)), label="COL", edgecolor='black')
+    ax.bar(x +  0.5*width*1.5,  np.divide(values['v4']['r'][m]['avg'], values['v4']['d'][m]['avg']), width*1.5, yerr=np.divide(values['v4']['r'][m]['std'],values['v4']['d'][m]['avg']), color=cmap(rescale(1)), label="RME Cold")
 
     plt.xlabel('Projectivity (Number of target columns)')
 
@@ -66,8 +71,9 @@ def generate_full_plot(figsize):
 
     plt.tight_layout()
 
-    plt.savefig("projectivity_mvcc.pdf")
+    plt.savefig(filename)
     plt.show()
 
 if (__name__ == '__main__'):
-    generate_full_plot((6.5, 3))
+    generate_full_plot((6.5, 3), 0, "projectvity.pdf")
+    generate_full_plot((6.5, 3), 1, "projectvity_mvcc.pdf")
