@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define CL_SIZE        64
 
@@ -39,16 +40,7 @@
 	#define T    unsigned int                   //4Byte
 #endif
 
-#ifdef linux
-  #define magic_timing_begin(cycleLo, cycleHi){\
-    *cycleHi=0;\
-    *cycleLo=0;\
-  }
-  #define magic_timing_end(cycleLo, cycleHi){\
-    *cycleHi=0;\
-    *cycleLo=0;\
-  }
-#else
+#ifdef __aarch64__
   #define magic_timing_begin(cycleLo, cycleHi){\
     *cycleHi=0;\
     asm volatile("mrs %0, CNTVCT_EL0": "=r"(*cycleLo) );\
@@ -59,6 +51,15 @@
     asm volatile("mrs %0, CNTVCT_EL0":"=r"(tempCycleLo) );\
     *cycleLo = tempCycleLo - *cycleLo;\
     *cycleHi = tempCycleHi - *cycleHi;\
+  }
+#else
+  #define magic_timing_begin(cycleLo, cycleHi){\
+    *cycleHi=0;\
+    *cycleLo=0;\
+  }
+  #define magic_timing_end(cycleLo, cycleHi){\
+    *cycleHi=0;\
+    *cycleLo=0;\
   }
 #endif
 
