@@ -27,7 +27,7 @@ def generate_full_plot(figsize, fontsize=False):
         plt.rcParams.update({'font.size': 13.5})
     values = {}
     for i in range(4, 5, 1):
-        res = read_full('result_demo.csv', 1)
+        res = read_full('results/demo.csv', 1)
         for memory in ('r',):
             for temperature in ('c', 'h'):
                 tmp = [e[1] for e in sorted(res[memory][temperature].items())]

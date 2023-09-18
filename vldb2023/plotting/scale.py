@@ -38,7 +38,7 @@ def generate_plot(figsize, ncol=2):
     column_size = 32
 
     for i in range(4, 5, 1):
-        res = read('result_scale.csv', 1)
+        res = read('results/scale.csv', 1)
         for memory in ('d', 'r', 'c'):
             tmp = [e[1] for e in sorted(res[memory].items())]
             row_counts = sorted(res[memory].keys())
