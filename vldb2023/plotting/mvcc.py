@@ -26,7 +26,7 @@ def generate_full_plot(figsize, m):
     plt.rcParams.update({'font.size': 14})
     values = {}
     for i in range(4, 5, 1):
-        res = read('result_mvcc.csv', 1)
+        res = read('results/mvcc.csv', 1)
         for memory in ('r', 'd', 'c'):
             for mvcc in range(2):
                 tmp = [e[1] for e in sorted(res[memory][mvcc].items())]

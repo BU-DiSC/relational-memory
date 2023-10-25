@@ -11,7 +11,7 @@ all: db_generate db_config_relcache db_reset_relcache $(ODIR)/perf.o q1 q2 q3 q4
 
 
 db_generate: $(SDIR)/db_generate.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/$(patsubst %,%.c,$@) $(CFLAGS)
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/$(patsubst %,%.c,$@) $(CFLAGS) -D __aarch64__
 
 db_config_relcache: $(SDIR)/db_config_relcache.c 
 	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/$(patsubst %,%.c,$@) $(CFLAGS)
@@ -30,86 +30,86 @@ demo: $(SDIR)/demo.c
 	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/demo.c $(CFLAGS) -D __aarch64__
 
 q1_col1: $(SDIR)/q1.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o -D __aarch64__
 
 q1_col2: $(SDIR)/q1.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o -D __aarch64__
 
 q1_col4: $(SDIR)/q1.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o -D __aarch64__
 
 q1_col8: $(SDIR)/q1.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o -D __aarch64__
 
 q1_col16: $(SDIR)/q1.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o -D __aarch64__
 
 q2_col1: $(SDIR)/q2.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o -D __aarch64__
 
 q2_col2: $(SDIR)/q2.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o -D __aarch64__
 
 q2_col4: $(SDIR)/q2.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o -D __aarch64__
 
 q2_col8: $(SDIR)/q2.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o -D __aarch64__
 
 q2_col16: $(SDIR)/q2.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q2.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o -D __aarch64__
 
 q3_col1: $(SDIR)/q3.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o -D __aarch64__
 
 q3_col2: $(SDIR)/q3.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o -D __aarch64__
 
 q3_col4: $(SDIR)/q3.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o -D __aarch64__
 
 q3_col8: $(SDIR)/q3.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o -D __aarch64__
 
 q3_col16: $(SDIR)/q3.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q3.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o -D __aarch64__
 
 q4_col1: $(SDIR)/q4.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o -D __aarch64__
 
 q4_col2: $(SDIR)/q4.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o -D __aarch64__
 
 q4_col4: $(SDIR)/q4.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o -D __aarch64__
 
 q4_col8: $(SDIR)/q4.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o -D __aarch64__
 
 q4_col16: $(SDIR)/q4.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q4.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o -D __aarch64__
 
 q5_col1: $(SDIR)/q5.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _1BYTE $(ODIR)/perf.o -D __aarch64__
 
 q5_col2: $(SDIR)/q5.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _2BYTE $(ODIR)/perf.o -D __aarch64__
 
 q5_col4: $(SDIR)/q5.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o -D __aarch64__
 
 q5_col8: $(SDIR)/q5.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _8BYTE $(ODIR)/perf.o -D __aarch64__
 
 q5_col16: $(SDIR)/q5.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q5.c $(CFLAGS) -D _16BYTE $(ODIR)/perf.o -D __aarch64__
 
 q1_mvcc_col4: $(SDIR)/q1_mvcc.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1_mvcc.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/q1_mvcc.c $(CFLAGS) -D _4BYTE $(ODIR)/perf.o -D __aarch64__
 
 
 db_relcache_dump: $(SDIR)/db_relcache_dump.c
-	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/$(patsubst %,%.c,$@) $(CFLAGS)  -D _4BYTE 
+	$(ARM_GCC) -o $(ODIR)/$@  $(SDIR)/$(patsubst %,%.c,$@) $(CFLAGS)  -D _4BYTE -D __aarch64__
 
 $(ODIR)/perf.o: $(IDIR)/performance_counters.h $(SDIR)/performance_counters.c
 	$(ARM_GCC) -c -o $(ODIR)/perf.o $(SDIR)/performance_counters.c $(CFLAGS)

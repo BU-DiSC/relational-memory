@@ -43,7 +43,7 @@ def generate_plot(figsize, ncol=2, fontsize=False):
         plt.rcParams.update({'font.size': 17})
     values = {}
     for i in range(4, 5, 1):
-        res = read('result_join1.csv', 1)
+        res = read('results/join1.csv', 1)
 
         for memory in ('d', 'r', 'c'):
             tmp = [e[1] for e in sorted(res[memory].items())]
@@ -88,7 +88,7 @@ def generate_row_plot(figsize, ncol, fontsize=False):
         plt.rcParams.update({'font.size': 17})
     values = {}
     for i in range(4, 5, 1):
-        res = read_row('result_join2.csv', 1)
+        res = read_row('results/join2.csv', 1)
         for memory in ('d', 'r', 'c'):
             tmp = [e[1] for e in sorted(res[memory].items())]
             sizes = sorted(res[memory].keys())
