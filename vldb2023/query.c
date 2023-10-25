@@ -200,6 +200,7 @@ typedef enum {
 struct arguments {
     store_t store;
     query_t query;
+    size_t limit;
     union {
         struct avrg_args avrg;
         struct slct_args slct;
@@ -498,6 +499,7 @@ void free_args(struct arguments *args) {
 }
 
 void parse_args(int argc, char **argv, struct arguments *args) {
+    args->limit = 1000;
     if (strcmp(argv[1], "-q") == 0) {
         argv++;
         argc--;
@@ -657,10 +659,10 @@ void avg_row(struct arguments *args) {
     }
     logger("Result rows: 1\n");
     logger("Execution time: %lu\n", end - start);
-#ifdef PRINT_RES
-    logger("Avg(c%hhu)\n", args->avrg.col);
-    logger("%lu\n", res);
-#endif
+    if (args->limit > 0) {
+        logger("Avg(c%hhu)\n", args->avrg.col);
+        logger("%lu\n", res);
+    }
     fprintf(stdout, "%lu\n", end - start);
 }
 
@@ -719,10 +721,10 @@ void avg_col(struct arguments *args) {
     }
     logger("Result rows: 1\n");
     logger("Execution time: %lu\n", end - start);
-#ifdef PRINT_RES
-    logger("Avg(c%hhu)\n", args->avrg.col);
-    logger("%lu\n", res);
-#endif
+    if (args->limit > 0) {
+        logger("Avg(c%hhu)\n", args->avrg.col);
+        logger("%lu\n", res);
+    }
     fprintf(stdout, "%lu\n", end - start);
 }
 
@@ -748,10 +750,10 @@ void avg_rme(struct arguments *args) {
     }
     logger("Result rows: 1\n");
     logger("Execution time: %lu\n", end - start);
-#ifdef PRINT_RES
-    logger("Avg(c%hhu)\n", args->avrg.col);
-    logger("%lu\n", res);
-#endif
+    if (args->limit > 0) {
+        logger("Avg(c%hhu)\n", args->avrg.col);
+        logger("%lu\n", res);
+    }
     fprintf(stdout, "%lu\n", end - start);
 }
 
@@ -840,47 +842,50 @@ void slct_row(struct arguments *args) {
 
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
-#ifdef PRINT_RES
-    for (int j = 0; j < projection_count; ++j) {
-        int col = projections[j];
-        logger("c%hhu ", args->slct.cols[col].col);
-    }
-    logger("\n");
-    ptr = result;
-    for (int i = 0; i < res_count; ++i) {
+    if (args->limit > 0) {
+        if (args->limit < res_count) {
+            res_count = args->limit;
+        }
         for (int j = 0; j < projection_count; ++j) {
             int col = projections[j];
-            uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
-            switch (width) {
-                case 1: {
-                    uint8_t val = *(uint8_t *) ptr;
-                    logger("%hhu ", val);
-                    break;
-                }
-                case 2: {
-                    uint16_t val = *(uint16_t *) ptr;
-                    logger("%hu ", val);
-                    break;
-                }
-                case 4: {
-                    uint32_t val = *(uint32_t *) ptr;
-                    logger("%u ", val);
-                    break;
-                }
-                case 8: {
-                    uint64_t val = *(uint64_t *) ptr;
-                    logger("%lu ", val);
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            ptr += width;
+            logger("c%hhu ", args->slct.cols[col].col);
         }
         logger("\n");
+        ptr = result;
+        for (int i = 0; i < res_count; ++i) {
+            for (int j = 0; j < projection_count; ++j) {
+                int col = projections[j];
+                uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+                switch (width) {
+                    case 1: {
+                        uint8_t val = *(uint8_t *) ptr;
+                        logger("%hhu ", val);
+                        break;
+                    }
+                    case 2: {
+                        uint16_t val = *(uint16_t *) ptr;
+                        logger("%hu ", val);
+                        break;
+                    }
+                    case 4: {
+                        uint32_t val = *(uint32_t *) ptr;
+                        logger("%u ", val);
+                        break;
+                    }
+                    case 8: {
+                        uint64_t val = *(uint64_t *) ptr;
+                        logger("%lu ", val);
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+                ptr += width;
+            }
+            logger("\n");
+        }
     }
-#endif
     free(result);
     fprintf(stdout, "%lu\n", end - start);
 }
@@ -955,47 +960,50 @@ void slct_col(struct arguments *args) {
     clock_t end = clock();
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
-#ifdef PRINT_RES
-    for (int j = 0; j < projection_count; ++j) {
-        int col = projections[j];
-        logger("c%hhu ", args->slct.cols[col].col);
-    }
-    logger("\n");
-    ptr = result;
-    for (int i = 0; i < res_count; ++i) {
+    if (args->limit > 0) {
+        if (args->limit < res_count) {
+            res_count = args->limit;
+        }
         for (int j = 0; j < projection_count; ++j) {
             int col = projections[j];
-            uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
-            switch (width) {
-                case 1: {
-                    uint8_t val = *(uint8_t *) ptr;
-                    logger("%hhu ", val);
-                    break;
-                }
-                case 2: {
-                    uint16_t val = *(uint16_t *) ptr;
-                    logger("%hu ", val);
-                    break;
-                }
-                case 4: {
-                    uint32_t val = *(uint32_t *) ptr;
-                    logger("%u ", val);
-                    break;
-                }
-                case 8: {
-                    uint64_t val = *(uint64_t *) ptr;
-                    logger("%lu ", val);
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            ptr += width;
+            logger("c%hhu ", args->slct.cols[col].col);
         }
         logger("\n");
+        ptr = result;
+        for (int i = 0; i < res_count; ++i) {
+            for (int j = 0; j < projection_count; ++j) {
+                int col = projections[j];
+                uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+                switch (width) {
+                    case 1: {
+                        uint8_t val = *(uint8_t *) ptr;
+                        logger("%hhu ", val);
+                        break;
+                    }
+                    case 2: {
+                        uint16_t val = *(uint16_t *) ptr;
+                        logger("%hu ", val);
+                        break;
+                    }
+                    case 4: {
+                        uint32_t val = *(uint32_t *) ptr;
+                        logger("%u ", val);
+                        break;
+                    }
+                    case 8: {
+                        uint64_t val = *(uint64_t *) ptr;
+                        logger("%lu ", val);
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+                ptr += width;
+            }
+            logger("\n");
+        }
     }
-#endif
     free(result);
     fprintf(stdout, "%lu\n", end - start);
 }
@@ -1072,47 +1080,50 @@ void slct_rme(struct arguments *args) {
     clock_t end = clock();
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
-#ifdef PRINT_RES
-    for (int j = 0; j < projection_count; ++j) {
-        int col = projections[j];
-        logger("c%hhu ", args->slct.cols[col].col);
-    }
-    logger("\n");
-    ptr = result;
-    for (int i = 0; i < res_count; ++i) {
+    if (args->limit > 0) {
+        if (args->limit < res_count) {
+            res_count = args->limit;
+        }
         for (int j = 0; j < projection_count; ++j) {
             int col = projections[j];
-            uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
-            switch (width) {
-                case 1: {
-                    uint8_t val = *(uint8_t *) ptr;
-                    logger("%hhu ", val);
-                    break;
-                }
-                case 2: {
-                    uint16_t val = *(uint16_t *) ptr;
-                    logger("%hu ", val);
-                    break;
-                }
-                case 4: {
-                    uint32_t val = *(uint32_t *) ptr;
-                    logger("%u ", val);
-                    break;
-                }
-                case 8: {
-                    uint64_t val = *(uint64_t *) ptr;
-                    logger("%lu ", val);
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            ptr += width;
+            logger("c%hhu ", args->slct.cols[col].col);
         }
         logger("\n");
+        ptr = result;
+        for (int i = 0; i < res_count; ++i) {
+            for (int j = 0; j < projection_count; ++j) {
+                int col = projections[j];
+                uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+                switch (width) {
+                    case 1: {
+                        uint8_t val = *(uint8_t *) ptr;
+                        logger("%hhu ", val);
+                        break;
+                    }
+                    case 2: {
+                        uint16_t val = *(uint16_t *) ptr;
+                        logger("%hu ", val);
+                        break;
+                    }
+                    case 4: {
+                        uint32_t val = *(uint32_t *) ptr;
+                        logger("%u ", val);
+                        break;
+                    }
+                    case 8: {
+                        uint64_t val = *(uint64_t *) ptr;
+                        logger("%lu ", val);
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+                ptr += width;
+            }
+            logger("\n");
+        }
     }
-#endif
     free(result);
     fprintf(stdout, "%lu\n", end - start);
 }
@@ -1159,13 +1170,13 @@ void join_row(struct arguments *args) {
 
     // ************************* PLIM Hash Table2 Starts *****************************
     // Assuming maximum of 2 matching per col1 of first Table. The other 2 is for keeping all columns from BOTH tables
-    uint32_t *join_result = malloc(2 * sizeof(uint32_t) * args->join.r.row_count);
+    uint32_t *result = malloc(2 * sizeof(uint32_t) * args->join.r.row_count);
     uint32_t res_count = 0;
     row = db2;
 
     // ************************* DRAM Hash Table2 Starts *****************************
     // Assuming maximum of 2 matching per col1 of first Table. The other 2 is for keeping all columns from BOTH tables
-    // magic_timing_begin(&cycleLo, &cycleHi);
+    uint32_t *ptr = result;
     for (int i = 0; i < args->join.r.row_count; i++) {
         start = clock();
         uint32_t key = row[args->join.r_join];
@@ -1183,22 +1194,29 @@ void join_row(struct arguments *args) {
         if (!found) {
             continue;
         }
-        join_result[res_count] = val1;
-        res_count++;
-        join_result[res_count] = val2;
+        ptr[0] = val1;
+        ptr[1] = val2;
+        ptr += 2;
         res_count++;
     }
     ht_free(ht);
 
-    logger("Result rows: %u\n", res_count / 2);
+    logger("Result rows: %u\n", res_count);
     logger("Execution time: %u\n", sum_access);
-#ifdef PRINT_RES
-    logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
-    for (int i = 0; i < res_count; i+=2) {
-        logger("%u %u\n", join_result[i], join_result[i+1]);
+    if (args->limit > 0) {
+        if (args->limit < res_count) {
+            res_count = args->limit;
+        }
+        ptr = result;
+        logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
+        for (int i = 0; i < res_count; i++) {
+            uint32_t val1 = ptr[0];
+            uint32_t val2 = ptr[1];
+            logger("%u %u\n", val1, val2);
+            ptr += 2;
+        }
     }
-#endif
-    free(join_result);
+    free(result);
     fprintf(stdout, "%u\n", sum_access);
 }
 
@@ -1232,7 +1250,7 @@ void join_col(struct arguments *args) {
 
     // ************************* PLIM Hash Table2 Starts *****************************
     // Assuming maximum of 2 matching per col1 of first Table. The other 2 is for keeping all columns from BOTH tables
-    uint32_t *join_result = malloc(2 * sizeof(uint32_t) * args->join.r.row_count);
+    uint32_t *result = malloc(2 * sizeof(uint32_t) * args->join.r.row_count);
     uint32_t res_count = 0;
     offset = calc_offset(&args->join.r, args->join.r_join) * args->join.r.row_count;
     key_col = db2 + offset;
@@ -1242,6 +1260,7 @@ void join_col(struct arguments *args) {
     // ************************* DRAM Hash Table2 Starts *****************************
     // Assuming maximum of 2 matching per col1 of first Table. The other 2 is for keeping all columns from BOTH tables
     // magic_timing_begin(&cycleLo, &cycleHi);
+    uint32_t *ptr = result;
     for (int i = 0; i < args->join.r.row_count; i++) {
         start = clock();
         uint32_t key = key_col[i];
@@ -1258,22 +1277,29 @@ void join_col(struct arguments *args) {
         if (!found) {
             continue;
         }
-        join_result[res_count] = val1;
-        res_count++;
-        join_result[res_count] = val2;
+        ptr[0] = val1;
+        ptr[1] = val2;
+        ptr += 2;
         res_count++;
     }
     ht_free(ht);
 
-    logger("Result rows: %u\n", res_count / 2);
+    logger("Result rows: %u\n", res_count);
     logger("Execution time: %u\n", sum_access);
-#ifdef PRINT_RES
-    logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
-    for (int i = 0; i < res_count; i+=2) {
-        logger("%u %u\n", join_result[i], join_result[i+1]);
+    if (args->limit > 0) {
+        if (args->limit < res_count) {
+            res_count = args->limit;
+        }
+        ptr = result;
+        logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
+        for (int i = 0; i < res_count; i++) {
+            uint32_t val1 = ptr[0];
+            uint32_t val2 = ptr[1];
+            logger("%u %u\n", val1, val2);
+            ptr += 2;
+        }
     }
-#endif
-    free(join_result);
+    free(result);
     fprintf(stdout, "%u\n", sum_access);
 }
 
@@ -1283,15 +1309,16 @@ void join_rme(struct arguments *args) {
 
     clock_t start, end;
     struct hash_table *ht = ht_create();
-    uint32_t *ptr = plim;
+    // ************************* Plim Hash Table1 Starts *****************************
+    uint32_t *row = plim;
     for (int i = 0; i < args->join.s.row_count; i++) {
         start = clock();
-        uint32_t key = *ptr;
-        ptr++;
-        uint32_t val = *ptr;
-        ptr++;
+        uint32_t key = row[0];
+        uint32_t val = row[1];
+        row += 2;
         end = clock();
         sum_access += end - start;
+
         if (args->join.s_sel < args->join.s_join) {
             uint32_t temp = key;
             key = val;
@@ -1311,17 +1338,21 @@ void join_rme(struct arguments *args) {
 
     // ************************* PLIM Hash Table2 Starts *****************************
     // Assuming maximum of 2 matching per col1 of first Table. The other 2 is for keeping all columns from BOTH tables
-    uint32_t *join_result = malloc(2 * sizeof(uint32_t) * args->join.r.row_count);
+    uint32_t *result = malloc(2 * sizeof(uint32_t) * args->join.r.row_count);
     uint32_t res_count = 0;
-    ptr = plim;
+    row = plim;
+
+    // ************************* DRAM Hash Table2 Starts *****************************
+    // Assuming maximum of 2 matching per col1 of first Table. The other 2 is for keeping all columns from BOTH tables
+    uint32_t *ptr = result;
     for (int i = 0; i < args->join.r.row_count; i++) {
         start = clock();
-        uint32_t key = *ptr;
-        ptr++;
+        uint32_t key = *row;
         uint32_t val2 = *ptr;
-        ptr++;
+        ptr += 2;
         end = clock();
         sum_access += end - start;
+
         if (args->join.r_sel < args->join.r_join) {
             uint32_t temp = key;
             key = val2;
@@ -1337,22 +1368,29 @@ void join_rme(struct arguments *args) {
         if (!found) {
             continue;
         }
-        join_result[res_count] = val1;
-        res_count++;
-        join_result[res_count] = val2;
+        ptr[0] = val1;
+        ptr[1] = val2;
+        ptr += 2;
         res_count++;
     }
     ht_free(ht);
 
-    logger("Result rows: %u\n", res_count / 2);
+    logger("Result rows: %u\n", res_count);
     logger("Execution time: %u\n", sum_access);
-#ifdef PRINT_RES
-    logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
-    for (int i = 0; i < res_count; i+=2) {
-        logger("%u %u\n", join_result[i], join_result[i+1]);
+    if (args->limit > 0) {
+        if (args->limit < res_count) {
+            res_count = args->limit;
+        }
+        ptr = result;
+        logger("S.c%hhu R.c%hhu\n", args->join.s_sel, args->join.r_sel);
+        for (int i = 0; i < res_count; i++) {
+            uint32_t val1 = ptr[0];
+            uint32_t val2 = ptr[1];
+            logger("%u %u\n", val1, val2);
+            ptr += 2;
+        }
     }
-#endif
-    free(join_result);
+    free(result);
     fprintf(stdout, "%u\n", sum_access);
 }
 
