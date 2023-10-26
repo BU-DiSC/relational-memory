@@ -827,8 +827,8 @@ void slct_row(struct arguments *args) {
                 }
             }
         }
-
         if (bad) continue;
+
         for (int j = 0; j < projection_count; ++j) {
             int col = projections[j];
             uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
@@ -1009,6 +1009,7 @@ void slct_col(struct arguments *args) {
 }
 
 void slct_rme(struct arguments *args) {
+    size_t offsets[MAX_GROUPS];
     uint8_t conditions[MAX_GROUPS];
     uint8_t projections[MAX_GROUPS];
     uint8_t condition_count = 0;
@@ -1025,50 +1026,42 @@ void slct_rme(struct arguments *args) {
         }
         plim_row_size += args->slct.s.widths[args->slct.cols[j].col];
     }
+    offsets[0] = 0;
+    for (int j = 1; j < args->slct.num_cols; ++j) {
+        offsets[j] = offsets[j - 1] + config->col_widths[j - 1];
+    }
 
     uint32_t res_count = 0;
     void *result = malloc(db_size);
     void *ptr = result;
     void *row = plim;
-
-    void *tmp_row = malloc(plim_row_size);
-    short *tmp_col_offsets = malloc(args->slct.num_cols);
-    short *tmp_col_widths = malloc(args->slct.num_cols);
-    for( int i=0 ; i<args->slct.num_cols ; i++){
-        tmp_col_widths[i] = config->col_widths[i];
-    }
-    tmp_col_offsets[0] = 0;
-    for( int i=1 ; i<args->slct.num_cols ; i++){
-        tmp_col_offsets[i] = tmp_col_offsets[i-1]+tmp_col_widths[i-1];
-    }
-
     clock_t start = clock();
     for (int i = 0; i < args->slct.s.row_count; ++i) {
         uint8_t bad = 0;
         for (int j = 0; j < condition_count; ++j) {
             int col = conditions[j];
             if (args->slct.cols[col].op == O_LT) {
-                uint8_t col_width = tmp_col_widths[col];
+                uint8_t col_width = config->col_widths[col];
                 if (col_width == 1) {
-                    uint8_t value = *(uint8_t *) (row + tmp_col_offsets[col]);
+                    uint8_t value = *(uint8_t *) (row + offsets[col]);
                     if (value >= args->slct.cols[col].k) {
                         bad = 1;
                         break;
                     }
                 } else if (col_width == 2) {
-                    uint16_t value = *(uint16_t *) (row + tmp_col_offsets[col]);
+                    uint16_t value = *(uint16_t *) (row + offsets[col]);
                     if (value >= args->slct.cols[col].k) {
                         bad = 1;
                         break;
                     }
                 } else if (col_width == 4) {
-                    uint32_t value = *(uint32_t *) (row + tmp_col_offsets[col]);
+                    uint32_t value = *(uint32_t *) (row + offsets[col]);
                     if (value >= args->slct.cols[col].k) {
                         bad = 1;
                         break;
                     }
                 } else if (col_width == 8) {
-                    uint64_t value = *(uint64_t *) (row + tmp_col_offsets[col]);
+                    uint64_t value = *(uint64_t *) (row + offsets[col]);
                     if (value >= args->slct.cols[col].k) {
                         bad = 1;
                         break;
@@ -1080,16 +1073,15 @@ void slct_rme(struct arguments *args) {
 
         for (int j = 0; j < projection_count; ++j) {
             int col = projections[j];
-            if (args->slct.cols[col].project) {
-                uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
-                memcpy(ptr, row + tmp_col_offsets[col], width);
-                ptr += width;
-            }
+            uint8_t width = args->slct.s.widths[args->slct.cols[col].col];
+            memcpy(ptr, row + offsets[col], width);
+            ptr += width;
         }
         res_count++;
         row += plim_row_size;
     }
     clock_t end = clock();
+
     logger("Result rows: %u\n", res_count);
     logger("Execution time: %lu\n", end - start);
     if (args->limit > 0) {
