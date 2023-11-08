@@ -274,7 +274,7 @@ void db_config(struct arguments *args) {
     switch (args->query) {
         case Q_AVRG: {
             config->row_size = args->avrg.s.row_size;
-            config->row_count = args->avrg.s.row_count + 64;
+            config->row_count = args->avrg.s.row_count;
             config->enabled_col_num = 1;
             config->col_offsets[0] = calc_offset(&args->avrg.s, args->avrg.col);
             config->col_widths[0] = args->avrg.s.widths[args->avrg.col];
@@ -282,7 +282,7 @@ void db_config(struct arguments *args) {
         }
         case Q_SLCT: {
             config->row_size = args->slct.s.row_size;
-            config->row_count = args->slct.s.row_count + 64;
+            config->row_count = args->slct.s.row_count;
             config->enabled_col_num = args->slct.num_cols;
             config->col_offsets[0] = calc_offset(&args->slct.s, args->slct.cols[0].col);
             config->col_widths[0] = args->slct.s.widths[args->slct.cols[0].col];
@@ -297,7 +297,7 @@ void db_config(struct arguments *args) {
         }
         case Q_JOIN: {
             config->row_size = args->join.s.row_size;
-            config->row_count = args->join.s.row_count + 64;
+            config->row_count = args->join.s.row_count;
             config->enabled_col_num = 2;
             config->col_widths[SEL_COL] = args->join.s.widths[args->join.s_sel];
             config->col_widths[JOIN_COL] = args->join.s.widths[args->join.s_join];
@@ -306,9 +306,12 @@ void db_config(struct arguments *args) {
             break;
         }
     }
-
     config->frame_offset = 0x0;
+#ifdef FORCE_CONFIG
+    config->row_count += 64;
+#endif
     db_reset(0x0);
+
     logger("Config:\n");
     for (int i = 0; i < config->enabled_col_num; ++i) {
         logger("\toffset: %3hu width: %hu\n", config->col_offsets[i], config->col_widths[i]);
@@ -318,13 +321,16 @@ void db_config(struct arguments *args) {
 
 void db2_config(struct arguments *args) {
     config->row_size = args->join.r.row_size;
-    config->row_count = args->join.r.row_count + 64;
+    config->row_count = args->join.r.row_count;
     config->enabled_col_num = 2;
     config->col_offsets[SEL_COL] = calc_offset(&args->join.r, args->join.r_sel);
     config->col_widths[SEL_COL] = args->join.r.widths[args->join.r_sel];
     config->col_offsets[JOIN_COL] = calc_offset(&args->join.r, args->join.r_join);
     config->col_widths[JOIN_COL] = args->join.r.widths[args->join.r_join];
     config->frame_offset = 0x0;
+#ifdef FORCE_CONFIG
+    config->row_count += 64;
+#endif
     db_reset(0x40000000);
 
     logger("Config:\n");
