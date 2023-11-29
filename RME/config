@@ -1,0 +1,51 @@
+[q1]
+r_col = 4
+num_samples = 10
+offsets = "0,8"
+k_value = 0
+enabled_column_number = 1
+row_count = 43690
+store_type = r
+print = false
+min = 0
+max = 1000
+mvcc_enabled = false
+
+[q2]
+r_col = 4
+num_samples = 10
+offsets = "0,8"
+k_value = 136
+enabled_column_number = 2
+row_count = 43690
+store_type = r
+print = false
+min = 0
+max = 1000
+mvcc_enabled = false
+
+[q3]
+r_col = 4
+num_samples = 10
+offsets = "0,8"
+k_value = 136
+enabled_column_number = 2
+row_count = 43690
+store_type = 'r'
+print = false
+min = 0
+max = 1000
+mvcc_enabled = false
+
+[q4]
+r_col = 4
+num_samples = 10
+offsets = "0,4,12"
+k_value = 136
+enabled_column_number = 3
+row_count = 43690
+store_type = 'r'
+print = false
+min = 0
+max = 1000
+mvcc_enabled = false
