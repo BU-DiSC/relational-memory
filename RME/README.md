@@ -1,57 +1,59 @@
-## Set up
+# Set up
 
-1. Run `make` in `src`
-2. Copy the generated executable `new_demo` to the board
+1. Run `make` in the `src` directory.
+2. Copy the generated executable `new_demo` to the board.
 
-## Configuration and Execution Guide
+# Configuration and Execution Guide
 
-### Default Configuration
+## Default Configuration
 
-- The program initially sets a [Default Configuration](utils/exp_config.c) for the experiment. These defaults are hard-coded and provide baseline settings for the database and experiment. You can override the default configuration with command line options, or by adding a "config" file.
+- The program initially sets a [Default Configuration](utils/exp_config.c) for the experiment. These defaults are hard-coded and provide baseline settings for the database and experiment. You can override the default configuration with command-line options, or by adding a "config" file.
 
-### Command Line Arguments
+## Command-Line Arguments
 
-- **Usage:**
-  - Run the program with the `-r` option followed by the query name and additional options as needed.
-  - Example: `./new_demo -r q2 [options]`
+### Usage
 
-- **Options:**
-  - `-S`: Set the storage type (e.g., row store, column store).
-  - `-C`: Specify the number of columns.
-  - `-r`: Define the row size in bytes.
-  - `-R`: Set the number of rows.
-  - `-T`: Choose the column types (e.g., sorted, random).
-  - `-P`: Enable printing of the created database.
-  - `-m`: Set the minimum value for random type columns.
-  - `-M`: Set the maximum value for random type columns.
-  - `-N`: Define the number of experiment samples.
-  - Other options as defined in your program.
+- Run the program with the `-r` option followed by the query name and additional options as needed.
+- Example: `./new_demo -r q2 [options]`
+- For projectivity experiment, use `-p`.
+- For single query mode, use `-q` followed by the query name and options.
 
- - **Execute the Program:**
-   - Run the row size experiment with q2, row size 16, number of experiments 1.
-     Example: `./new_demo -r q2 -R 16 -N 1`
-   - Run projectivity experiment
-     Example: `./new_demo -p q1 -N 1`
+### Execute the Program
 
+- Example: Run q2 in single query mode.
+  `./new_demo -q q2 -L -O 0,4 -K 136`
+- Example: Run the row size experiment with q2, number of experiments 1.
+  `./new_demo -r q2 -N 1`
+- Example: Run the projectivity experiment for q1.
+  `./new_demo -p`
+
+### Options
+
+- `-L`: Load database configuration from the 'config' file.
+- `-C`: Specify the number of columns.
+- `-R`: Set the number of row counts.
+- `-N`: Define the number of experiment samples.
+- `-O`: Specify column offsets (comma-separated).
+- `-K`: Set the K value for the query.
+- `-S`: Choose storage type (r: row store, c: column store).
+- `-T`: Define column types (s: sorted, r: random, z: zero-padded).
+- `-P`: Enable printing of the created database and query results.
+- `-m`: Set the minimum value.
+- `-M`: Set the maximum value.
+- `-V`: Enable MVCC mode.
    
-### Configuration File
+## Configuration File
 
-- **Customizing Configuration:**
-  - You can customize the program's configuration by creating a "config" file in the program directory.
-  - This file allows you to set various parameters that override the default settings.
+### Customizing Configuration
 
-- **Using the Configuration File:**
-  - If a "config" file is found, the program will read and apply these settings.
-  - If the file is not found, the program will proceed with the default configuration and a warning message will be displayed.
+- Customize the program's configuration by creating a "config" file in the program directory.
+- This file allows setting various parameters to override the default settings.
 
-  - **Fine-Tuning Configuration:**
-  - For more direct control, you can override both the default and file-based configurations using command-line arguments when running the program.
+### Using the Configuration File
 
+- If a "config" file is found, the program reads and applies these settings.
+- If the file is not found, the program proceeds with the default configuration, and a warning message is displayed.
 
+# Fine-Tuning Configuration
 
-
-
-
-
-
-
+For more direct control, override both the default and file-based configurations using command-line arguments when running the program.

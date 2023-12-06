@@ -127,11 +127,15 @@ int main(int argc, char** argv) {
 
     pmcs_get_value(&start);
     magic_timing_begin(&cycleLo, &cycleHi);
-    for(int i = 0; i < config.row_count; i++)
-    {
-      memcpy(result, (dram + i), sizeof(T));
-      memcpy(result + 1, (dram + i + 2*config.row_count), sizeof(T));
-      memcpy(result + 2, (dram + i + 4*config.row_count), sizeof(T));
+    for (int i = 0; i < config.row_count; i++) {
+        // Copy the data for the enabled columns
+        for (int col = 0; col < config.enabled_col_num; col++) {
+            // Calculate the source offset for the current column in 'dram'
+            unsigned int sourceOffset = i + col * config.row_count;
+
+            // Copy the column data from 'dram' to the appropriate position in 'result'
+            memcpy(result + col, dram + sourceOffset, sizeof(T));
+        }
     }
     magic_timing_end(&cycleLo, &cycleHi);
     pmcs_get_value(&end);

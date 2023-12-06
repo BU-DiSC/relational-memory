@@ -4,11 +4,11 @@ import numpy as np
 
 def plot_data(df, ax, y_max):
     # Group data and calculate means and standard deviations
-    grouped_mean = df.groupby(['enabled_cols', 'mem', 'temp'])['cycles'].mean().unstack(level=[1, 2]).fillna(0)
-    grouped_std = df.groupby(['enabled_cols', 'mem', 'temp'])['cycles'].std().unstack(level=[1, 2]).fillna(0)
+    grouped_mean = df.groupby(['enabled_col_num', 'mem', 'temp'])['cycles'].mean().unstack(level=[1, 2]).fillna(0)
+    grouped_std = df.groupby(['enabled_col_num', 'mem', 'temp'])['cycles'].std().unstack(level=[1, 2]).fillna(0)
     
     # Plotting
-    x = sorted(df['enabled_cols'].unique())
+    x = sorted(df['enabled_col_num'].unique())
     width = 0.2
     bar_positions = np.arange(len(x))
     offset = width * np.array([-1.5, -0.5, 0.5, 1.5])
@@ -50,4 +50,4 @@ def plot_and_save(input_csv, output_file, main_title, secondary_title):
     fig.savefig(output_file, bbox_inches='tight', format='png')
     plt.close(fig)
 
-plot_and_save('data/projectivity/PLT2_result_q1_col.csv', 'plots/projectivity.png', 'Projectivity', 'Q1')
+plot_and_save('data/projectivity/result_projectivity.csv', 'plots/projectivity.png', 'Projectivity', 'Q1')

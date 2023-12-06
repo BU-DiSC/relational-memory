@@ -17,6 +17,72 @@ int open_fd() {
     return fd;
 }
 
+FILE* open_file(const char *filename, const char *mode) {
+    FILE *file = fopen(filename, mode);
+    if (!file) {
+        perror("Error opening file");
+        exit(EXIT_FAILURE); // or return NULL and handle it in the caller
+    }
+    return file;
+}
+
+void setup(int argc, char **argv, char *query_name, struct _config_db *config_db, struct experiment_config *exp_args, struct _config_query *config_query) {
+    int query_type = query_name[1];
+
+    set_config(query_type, config_db, exp_args, config_query);
+
+    parse_args(argc, argv, config_db, exp_args, config_query);
+    
+    if (config_db->load_file == true && access("config", F_OK) != -1) {
+        printf("Loading database configuration from the config file\n");
+        parse_config_file(config_db, exp_args); // Load from the specified config file
+    } else {
+        fprintf(stderr, "'config' file not found or not specified. Using default configuration.\n");
+    }
+}
+
+void run_single_query(struct _config_db *config_db, struct experiment_config *exp_config, struct _config_query* query_config,
+                      QueryFunction query_func, char* filename) {
+
+    FILE* fp = open_file(filename, "w");
+
+    query_config->output_file = fp;
+    fprintf(fp, "bench, mem, temp, enabled_col_num, row_size, row_count, col_width, cycles, l1_references, l1_refills, l2_references, l2_refills, inst_retired\n");
+
+    config_db->column_widths = malloc(config_db->num_columns * sizeof(unsigned int));
+    config_db->column_types = malloc(config_db->num_columns * sizeof(char));
+    for (int i = 0; i < config_db->num_columns; i++) {
+        config_db->column_widths[i] = exp_config->r_col;
+        config_db->column_types[i] = config_db->col_type;
+    }
+
+    query_config->enabled_column_number = parse_exp_offsets(query_config); // set offsets in query_config and get enabled column number
+
+    run_query(config_db, query_config, query_func);
+    free(config_db->column_widths);
+    free(config_db->column_types);
+
+    fclose(fp);
+}
+
+void run_query(struct _config_db *config_db, struct _config_query* query_config, QueryFunction query_func) {
+    // temporary naive flush
+    flush_cache();
+    printf("DB generate\n");
+    generate_db(*config_db);
+
+    printf("config relmem\n");
+    configure_relcache(*config_db, query_config);
+    
+    printf("run query\n");
+    query_func(*config_db, *query_config);
+    
+    
+    reset_relcache(0);
+    // temporary naive flush
+    flush_cache();
+}
+
 void flush_cache() {
     char *array = malloc(SIZE);
 
@@ -31,43 +97,6 @@ void flush_cache() {
     free(array);
 }
 
-
-void run_query(struct _config_db *config_db, struct _config_query* query_config, QueryFunction query_func) {
-    // temporary naive flush
-    flush_cache();
-    generate_db(*config_db);
-    printf("DB generate\n");
-
-    configure_relcache(*config_db, query_config);
-    printf("config relmem\n");
-
-    query_func(*config_db, *query_config);
-    printf("run query\n");
-    
-    reset_relcache(0);
-    //call_db_reset_relcache(0);
-    // temporary naive flush
-    flush_cache();
-}
-
-
-void setup(int argc, char **argv, char *query_name, struct _config_db *config_db, struct experiment_config *exp_args, struct _config_query *config_query, char **filename) {
-    int query_type = query_name[1];
-    *filename = get_filename_from_query_type(query_type);
-
-    ConfigFunction config_func = get_config_function(query_type);
-    config_func(config_db, exp_args, config_query);
-
-    if (access("config", F_OK) != -1) {
-        parse_config_file(query_name); // Override with config file values
-    } else {
-        fprintf(stderr, "Warning: 'config' file not found. Using default configuration.\n");
-    }
-
-    parse_args(argc, argv, config_db, exp_args, config_query);
-}
-
-
 int main(int argc, char **argv) {
     int opt;
     char *query_name = NULL;
@@ -76,12 +105,12 @@ int main(int argc, char **argv) {
     struct _config_db config_db;
     struct experiment_config exp_args;
 
-    while ((opt = getopt(argc, argv, "r:p:h")) != -1) {
+    while ((opt = getopt(argc, argv, "r:q:phl")) != -1) {
         switch (opt) {
             case 'r': 
                 query_name = optarg;
-                char *filename;
-                setup(argc, argv, query_name, &config_db, &exp_args, &config_query, &filename);
+                char *filename = get_filename_from_query_type(query_name[1]);
+                setup(argc, argv, query_name, &config_db, &exp_args, &config_query);
                 
                 QueryFunction query_func = get_query_function(query_name[1]);
                 row_size_exp(&config_db, &exp_args, &config_query, query_func, filename);
@@ -91,15 +120,24 @@ int main(int argc, char **argv) {
                 printf("Experiment results were saved in: %s\n\n", filename);
                 break;
             case 'p':
-                query_name = optarg;
-                char *filename_proj;
-                setup(argc, argv, query_name, &config_db, &exp_args, &config_query, &filename_proj);
-                
+                query_name = "q1";
+                set_config(1, &config_db, &exp_args, &config_query);
+                char *filename_proj = "data/result_projectivity.csv";
                 QueryFunction query_func_proj = get_query_function(query_name[1]);
                 projectivity_exp(&config_db, &exp_args, &config_query, query_func_proj, filename_proj);
 
                 print_dotted_line(50);
                 printf("Experiment results were saved in: %s\n\n", filename_proj);
+                break;
+            case 'q':
+                query_name = optarg;
+                char *filename_single = get_filename_from_query_type(query_name[1]);
+                setup(argc, argv, query_name, &config_db, &exp_args, &config_query);
+                
+                QueryFunction query_func_single = get_query_function(query_name[1]);
+                run_single_query(&config_db, &exp_args, &config_query, query_func_single, filename_single);
+
+                printf("Performance results were saved in: %s\n", filename_single);
                 break;
             case 'h':
                 print_help(argv[0]);
@@ -118,67 +156,3 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-// int main(int argc, char **argv) {
-//     int opt;
-//     char *query_name = NULL;
-
-//     struct _config_query config_query;
-//     struct _config_db config_db;
-//     struct experiment_config exp_args;
-//     char *filename;
-//     // Use getopt to process command-line arguments
-//     while ((opt = getopt(argc, argv, "e:qh")) != -1) {
-//         switch (opt) {
-//             case 'e': 
-//                 query_name = optarg;
-//                 int query_type = query_name[1];
-//                 filename = get_filename_from_query_type(query_type);
-
-//                 // set hard coded default configuration for the experiment
-//                 ConfigFunction config_func = get_config_function(query_type);
-//                 config_func(&config_db, &exp_args, &config_query);
-
-//                 // Check if the "config" file exists and override the default config
-//                 if (access("config", F_OK) != -1) {
-//                     // set the values from the config file at runtime
-//                     parse_config_file(query_name);
-//                 } else {
-//                     fprintf(stderr, "Warning: 'config' file not found. Using default configuration.\n");
-//                 }
-
-//                 // override the previous config with command line arguments if any
-//                 parse_args(argc, argv, &config_db, &exp_args, &config_query);
-
-//                 // get the query function to run based on the name
-//                 QueryFunction query_func = get_query_function(query_type);
-//                 //run the experiment
-//                 row_size_exp(&config_db, &exp_args,&config_query, query_func, filename);
-
-//                 print_experiment_config(&exp_args, config_db, config_query);
-//                 print_dotted_line(50);
-//                 printf("Experiment results were saved in: %s\n\n", filename);
-
-//                 break;
-//             case 'h':
-//                 print_help(argv[0]);
-//                 exit(EXIT_SUCCESS); 
-//         }
-//     }
-
-//     if (argc == 1) {
-//         fprintf(stderr, "For usage information, use the -h option: %s -h\n", argv[0]);
-//         exit(EXIT_FAILURE);
-//     }
-
-//     return 0;
-// }

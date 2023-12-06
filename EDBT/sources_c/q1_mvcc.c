@@ -158,9 +158,9 @@ int main(int argc, char** argv) {
           // when the row is valid
           unsigned offset = 0;
           for(int j=0; j<config.enabled_col_num - (int)mvcc_enabled; j++){
-            data = *(T*)(plim + i*sum_col_width + offset);
-            offset += config.col_widths[j];
-          }
+            data = *(T*)(plim + i*sum_col_width + width*j);
+            //offset += config.col_widths[j];
+          } 
         }
 
         magic_timing_end(&cycleLo, &cycleHi);
@@ -314,3 +314,32 @@ int main(int argc, char** argv) {
     
     return 0;
 }
+
+
+
+    // unsigned int cycleHi    = 0, cycleLo=0;
+    // struct perf_counters res, start, end;
+    // bool mvcc_enabled = false;
+
+    // unsigned sum_col_width = 0;
+    // for ( int i=0 ; i<params.enabled_column_number ; i++ ) {
+    //     sum_col_width += params.col_width[i];
+    // }
+    // // -- pasring arguments done --------------------------------------
+
+    // unsigned dram_size  = config_db.row_count*config_db.row_size;
+    // int hpm_fd          = open_fd();
+    // int dram_fd         = open_fd();
+    // int fd = setup_pmcs();
+    // if (fd < 0)
+    //     perror("Issue opening PMC FDs\n");
+    // //mapping fpga:
+    // unsigned char* plim = mmap((void*)0, RELCACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED|0x40, hpm_fd, RELCACHE_ADDR);
+    // //mapping dram
+    // unsigned char* dram = mmap((void*)0, dram_size, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED|0x40, dram_fd, DRAM_ADDR);
+
+    // T data;
+    // T data_count;
+
+
+

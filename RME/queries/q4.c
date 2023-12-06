@@ -82,7 +82,7 @@ void run_query4(struct _config_db config_db, struct _config_query params){
     magic_timing_end(&cycleLo, &cycleHi);
     pmcs_get_value(&end);
     res = pmcs_diff(&end, &start);
-    fprintf(params.output_file,"q4, r, c, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", config_db.row_size, config_db.row_count, params.col_width[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
+    fprintf(params.output_file,"q4, r, c, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
     free(plim_group_array);
 
     plim_group_array = NULL;
@@ -132,7 +132,7 @@ void run_query4(struct _config_db config_db, struct _config_query params){
     magic_timing_end(&cycleLo, &cycleHi);
     pmcs_get_value(&end);
     res = pmcs_diff(&end, &start);
-    fprintf(params.output_file,"q4, r, h, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", config_db.row_size, config_db.row_count, params.col_width[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
+    fprintf(params.output_file,"q4, r, h, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
     free(plim_group_array);
 
     // start DRAM
@@ -184,7 +184,7 @@ void run_query4(struct _config_db config_db, struct _config_query params){
     magic_timing_end(&cycleLo, &cycleHi);
     pmcs_get_value(&end);
     res = pmcs_diff(&end, &start);
-    fprintf(params.output_file,"q4, d, -, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", config_db.row_size, config_db.row_count, params.col_width[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
+    fprintf(params.output_file,"q4, d, -, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
 
     free(dram_group_array);  // Free the dynamically allocated memory
     }
@@ -239,7 +239,7 @@ void run_query4(struct _config_db config_db, struct _config_query params){
     magic_timing_end(&cycleLo, &cycleHi);
     pmcs_get_value(&end);
     res = pmcs_diff(&end, &start);
-    fprintf(params.output_file,"q4, c, -, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", config_db.row_size, config_db.row_count, params.col_width[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
+    fprintf(params.output_file,"q4, c, -, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
 
     free(dram_group_array);  // Free the dynamically allocated memory
     }

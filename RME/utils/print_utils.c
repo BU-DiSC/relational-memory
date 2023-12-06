@@ -10,7 +10,7 @@ void print_experiment_config(struct experiment_config *config, struct _config_db
     printf("column width: %u\n", config->r_col);
     printf("row sizes varying between %u and %u\n", 16, 256);
     printf("Row Count: %d\n", config_db.row_count);
-    printf("Store Type: %c\n", config_db.store_type);
+    printf("Column Type: %c\n", config_db.col_type);
     printf("Min: %d\n", config_db.min);
     printf("Max: %d\n", config_db.max);
 }
@@ -113,24 +113,35 @@ void print_dotted_line(int n) {
 
 void print_help(const char *program_name) {
     fprintf(stderr, "Usage:\n");
-    fprintf(stderr, "    Run experiment:\n");
-    fprintf(stderr, "    %s -e <query_name> [options]\n", program_name);
-    fprintf(stderr, "    e.g., %s -e q2\n", program_name);
-    fprintf(stderr, "    e.g., %s -e q2 -R 10 -N 1\n", program_name);
+    fprintf(stderr, "    Run row size experiment:\n");
+    fprintf(stderr, "    %s -r <query_name> [options]\n", program_name);
+    fprintf(stderr, "    e.g., %s -r q2 -N 1\n", program_name);
     
+    fprintf(stderr, "    Run projectivity experiment:\n");
+    fprintf(stderr, "    %s -p\n", program_name);
+    
+    fprintf(stderr, "    Run a single query mode:\n");
+    fprintf(stderr, "    %s -q <query_name> [options]\n", program_name);
+    fprintf(stderr, "    e.g., %s -q q2 -L -O 0,4 -K 136\n", program_name);
+    fprintf(stderr, "    e.g., %s -q q2 -P -O 0,4 -K 136 -R 16 -T s\n", program_name);
+
     fprintf(stderr, "\nOptions to override the default database configuration:\n");
-    fprintf(stderr, "  -S   Storage type: r (row store, default) | c (column store)\n");
+    fprintf(stderr, "  -L   Load database configuration from 'config' file\n");
     fprintf(stderr, "  -C   Number of columns (int, default: 8)\n");
-    fprintf(stderr, "  -r   Row size (int, default: 64)\n");
     fprintf(stderr, "  -R   Number of row counts (int)\n");
-    fprintf(stderr, "  -T   Column types: s (sorted) | r (random, default) | z (zero padded)\n");
-    fprintf(stderr, "  -P   Print created DB\n");
-    fprintf(stderr, "  -m   Minimum value for random type\n");
-    fprintf(stderr, "  -M   Maximum value for random type\n");
-    fprintf(stderr, "  -V   Enable MVCC mode\n");
     fprintf(stderr, "  -N   Number of experiment samples\n");
+    fprintf(stderr, "  -O   Column offsets (comma-separated)\n");
+    fprintf(stderr, "  -K   K value for query\n");
+    fprintf(stderr, "  -S   Storage type: r (row store, default) | c (column store)\n");
+    fprintf(stderr, "  -T   Column types: s (sorted) | r (random, default) | z (zero padded)\n");
+    fprintf(stderr, "  -P   Print created DB and query results\n");
+    fprintf(stderr, "  -m   Minimum value\n");
+    fprintf(stderr, "  -M   Maximum value\n");
+    fprintf(stderr, "  -V   Enable MVCC mode\n");
+
     fprintf(stderr, "\nFor more details, refer to the documentation.\n");
 }
+
 
 
 void print_db(struct _config_db config, unsigned char* db, unsigned int row_size) {

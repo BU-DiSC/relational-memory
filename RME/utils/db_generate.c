@@ -144,9 +144,7 @@ void generate_db(struct _config_db config) {
     if (munmap(db, db_size) == -1) {
     perror("Error unmapping the memory");
     // Handle the error as appropriate
-}
-
-
+    }
 
 }
 

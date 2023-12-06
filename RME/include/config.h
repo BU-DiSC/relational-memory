@@ -33,6 +33,7 @@
 #define T    unsigned int
 #define MAX_GROUPS 11
 #define SIZE (1024 * 1024) // 1MB
+#define COLUMN_WIDTH 4
 struct _config_db {
     unsigned int   row_size;
     unsigned int   row_count;
@@ -40,10 +41,12 @@ struct _config_db {
     unsigned int*  column_widths;
     char*          column_types;
     char           store_type;
+    char           col_type;
     bool           print;
     unsigned int   min;
     unsigned int   max;
     bool           mvcc_enabled;
+    bool           load_file;
 };
 
 struct _config_query {
@@ -52,7 +55,6 @@ struct _config_query {
     unsigned short col_width[MAX_GROUPS];
     int k_value;
     FILE* output_file;
-    FILE* results;
     char* offsets; //just for user input
 };
 

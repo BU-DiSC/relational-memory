@@ -7,7 +7,7 @@ CFLAGS = -lm  -O0 #-I$(IDIR) #-W -Wall
 #-O0 don't do any optimization
 #-O2 do your best optimization
 
-all: db_generate db_config_relcache db_reset_relcache $(ODIR)/perf.o q1 q2 q3 q4 q5 db_relcache_dump demo q1_mvcc
+all: db_generate db_config_relcache db_reset_relcache $(ODIR)/perf.o q1 q2 q3 q4 q5 db_relcache_dump q1_mvcc
 
 
 db_generate: $(SDIR)/db_generate.c

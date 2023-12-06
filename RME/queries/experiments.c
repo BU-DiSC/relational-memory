@@ -2,25 +2,16 @@
 #include "parse_config.h"
 #include <sys/wait.h>
 
-FILE* open_file(const char *filename, const char *mode) {
-    FILE *file = fopen(filename, mode);
-    if (!file) {
-        perror("Error opening file");
-        exit(EXIT_FAILURE); // or return NULL and handle it in the caller
-    }
-    return file;
-}
+
 
 void row_size_exp(struct _config_db *config_db, struct experiment_config *exp_config, struct _config_query* query_config,
             QueryFunction query_func, char* filename) {
 
     FILE* fp = open_file(filename, "w");
-    FILE *results_file = open_file("data/results_file.csv", "w");
 
-    query_config->results = results_file;
     query_config->output_file = fp;
-    fprintf(fp, "bench, mem, temp, row_size, row_count, col_width, cycles, l1_references, l1_refills, l2_references, l2_refills, inst_retired\n");
-    fprintf(results_file, "bench, row_size, RME(cold), RME(hot), ROW, COL\n");
+    fprintf(fp, "bench, mem, temp, enabled_col_num, row_size, row_count, col_width, cycles, l1_references, l1_refills, l2_references, l2_refills, inst_retired\n");
+
     for (unsigned int row_size = 16; row_size <= 256; row_size *= 2) {
         for (unsigned int sample = 1; sample <= exp_config->num_samples; sample++) {
             // set up parameters for the experiment
@@ -31,10 +22,11 @@ void row_size_exp(struct _config_db *config_db, struct experiment_config *exp_co
             config_db->column_types = malloc(config_db->num_columns * sizeof(char));
             for (int i = 0; i < config_db->num_columns; i++) {
                 config_db->column_widths[i] = exp_config->r_col;
-                config_db->column_types[i] = 'r';
+                config_db->column_types[i] = config_db->col_type;
             }
-            populate_column_widths(config_db,query_config);
-            parse_exp_offsets(query_config);
+            
+            query_config->enabled_column_number = parse_exp_offsets(query_config); // set offsets in query_config and get enabled column number
+
             // run experiment for row store
             run_query(config_db, query_config, query_func);
             // run the experiment for column store
@@ -45,27 +37,24 @@ void row_size_exp(struct _config_db *config_db, struct experiment_config *exp_co
         }
     }
     fclose(fp);
-    fclose(results_file);
 }
 
 void projectivity_exp(struct _config_db *config_db, struct experiment_config *exp_config, struct _config_query* query_config,
                       QueryFunction query_func, char* filename) {
                         
     FILE* fp = open_file(filename, "w");
-    FILE *results_file = open_file("data/results_file.csv", "w");
-
-    query_config->results = results_file;
     query_config->output_file = fp;
-    fprintf(fp, "bench, mem, temp, row_size, enabled_cols, row_count, col_width, cycles, l1_references, l1_refills, l2_references, l2_refills, inst_retired\n");
-    fprintf(results_file, "bench, num_columns, RME(cold), RME(hot), ROW, COL\n");
+    fprintf(fp, "bench, mem, temp, enabled_col_num, row_size, row_count, col_width, cycles, l1_references, l1_refills, l2_references, l2_refills, inst_retired\n");
 
-    for (unsigned int num_columns = 2; num_columns <= 11; num_columns++) {
+
+    for (unsigned int num_columns = 2; num_columns <= 10; num_columns++) {
         // Directly set the offset values in the query_config's col_offsets array
         for (unsigned int sample = 1; sample <= exp_config->num_samples; sample++) {
             for (unsigned int i = 0; i < num_columns; i++) {
                 query_config->col_offsets[i] = i * 4;  // fixed offset increment of 4
             }
-
+            exp_config->num_samples = 10;
+            config_db->row_count = 32768;
             query_config->enabled_column_number = num_columns;
             config_db->store_type = 'r';
             config_db->row_size = 64;
@@ -74,13 +63,13 @@ void projectivity_exp(struct _config_db *config_db, struct experiment_config *ex
             config_db->column_types = malloc(config_db->num_columns * sizeof(char));
             for (int i = 0; i < config_db->num_columns; i++) {
                 config_db->column_widths[i] = exp_config->r_col;
-                config_db->column_types[i] = 'r';
+                config_db->column_types[i] = config_db->col_type;
             }
-            populate_column_widths(config_db,query_config);
-            // Set up and run the experiment for each number of columns
+            int col_num = parse_exp_offsets(query_config); // set offsets in query_config and get enabled column number
+
             config_db->store_type = 'r';
             run_query(config_db, query_config, query_func);
-
+            
             config_db->store_type = 'c';
             run_query(config_db, query_config, query_func);
             free(config_db->column_widths);
@@ -89,5 +78,4 @@ void projectivity_exp(struct _config_db *config_db, struct experiment_config *ex
     }
 
     fclose(fp);
-    fclose(results_file);
 }

@@ -13,7 +13,7 @@ int configure_relcache(struct _config_db config_db, struct _config_query *params
     config->enabled_col_num = params->enabled_column_number;
     
     for(int i=0; i<params->enabled_column_number; i+=1){
-      config->col_widths[i] = params->col_width[i];
+      config->col_widths[i] = config_db.column_widths[i];
     }
     unsigned short sum_col_offsets = 0;
     for(int i=0; i<params->enabled_column_number; i+=1){
@@ -48,22 +48,5 @@ int reset_relcache(unsigned int frame_offset) {
     //unmap
     int unmap_result = munmap(config, LPD0_SIZE);
     return unmap_result;
-}
-
-void call_db_reset_relcache(int value) {
-    const char* ODIR = "objects";
-    char cmd[256];
-
-    // Check if the provided value is 0 or 1
-    if (value != 0 && value != 1) {
-        fprintf(stderr, "Invalid value. Only 0 or 1 accepted.\n");
-        return;
-    }
-
-    // Prepare the command string
-    snprintf(cmd, sizeof(cmd), "%s/db_reset_relcache %d", ODIR, value);
-
-    // Execute the command
-    system(cmd);
 }
 
