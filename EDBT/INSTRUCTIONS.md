@@ -1,6 +1,6 @@
 # Seting up the device
 
-For the experiments in this repository, we used the ZCU102 development board and Vivado 2017.4. Ready-to-deploy bitstreams are available in the `bitstreams` directory. You are encouraged to use the latest version, but feel free to experiment with earlier versions as well.
+For the experiments in this repository, we used the Xilinx Zynq UltraScale+ MPSoC platform and Vivado 2017.4. Ready-to-deploy bitstreams are available in the `bitstreams` directory. You are encouraged to use the latest version, but feel free to experiment with earlier versions as well.
 
 # Configuration and Execution Guide
 
@@ -33,7 +33,7 @@ You can run `./new_demo -h` to see the command line options
 
   ```./new_demo -q q2 -L -O 0,4 -K 136```
 
-This command would run query `Q2: SELECT A0 FROM S WHERE A1 > 136;`
+  This command would run query `Q2: SELECT A0 FROM S WHERE A1 > 136;`
 
 - Run the varying row size experiment with the `-r` option followed by the query name and additional options as needed. For example    the following command would run a varying row size experiment with the hard-coded database and experiment settings but it would override the default number of experiment by `-N 1` option.
 
