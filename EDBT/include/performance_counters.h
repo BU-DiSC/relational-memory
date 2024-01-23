@@ -6,6 +6,17 @@
 #ifndef PERFORMANCE_COUNTERS_H
 #define PERFORMANCE_COUNTERS_H
 
+#define magic_timing_begin(cycleLo, cycleHi){\
+  *cycleHi=0;\
+  asm volatile("mrs %0, CNTVCT_EL0": "=r"(*cycleLo) );\
+}\
+
+#define magic_timing_end(cycleLo, cycleHi){\
+  unsigned tempCycleLo, tempCycleHi =0;\
+  asm volatile("mrs %0, CNTVCT_EL0":"=r"(tempCycleLo) );\
+  *cycleLo = tempCycleLo - *cycleLo;\
+  *cycleHi = tempCycleHi - *cycleHi;\
+}
 
 /** @brief Struct used to hold the measured performance events.
  * @details

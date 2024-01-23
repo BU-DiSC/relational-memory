@@ -1,0 +1,14 @@
+# General database and experiment settings
+row_count = 43690
+num_columns = 16
+store_type = r
+column_type = r
+min = 0
+max = 1000
+mvcc_enabled = false
+print = false
+
+# General experiment settings
+r_col = 4
+num_samples = 1
+
