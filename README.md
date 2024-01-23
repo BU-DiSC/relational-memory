@@ -9,7 +9,7 @@ Transactional and analytical database management systems (DBMS) typically employ
 
 Usefull links:
 
-- [Instructions](vldb2023/README.md)
+- [Instructions](vldb2023/INSTRUCTIONS.md)
 
 - [VLDB 2023](https://www.vldb.org/pvldb/volumes/16/paper/On-the-fly%20Data%20Transformation%20in%20Action)
 
