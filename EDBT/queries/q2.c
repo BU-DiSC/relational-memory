@@ -99,7 +99,7 @@ void run_query2(struct _config_db config_db, struct _config_query params){
     }
 
 
-    if ( config_db.store_type == 'c' ){
+    else if ( config_db.store_type == 'c' ){
         data_count = 0;
         T *col_array = malloc(config_db.row_count * sizeof(T));
         // Compute the product of row_count and column offset outside the loop
@@ -122,7 +122,7 @@ void run_query2(struct _config_db config_db, struct _config_query params){
         free(col_array);
     }
 
-    if ( config_db.store_type == 'r' ){
+    else if ( config_db.store_type == 'r' ){
         pmcs_get_value(&start);
         magic_timing_begin(&cycleLo, &cycleHi);
         for (int i = 0; i < config_db.row_count; i++) {
@@ -157,7 +157,7 @@ void run_query2(struct _config_db config_db, struct _config_query params){
 
     }
 
-    if ( config_db.store_type == 'd' ){
+    else if ( config_db.store_type == 'd' ){
         data_count = 0;
         pmcs_get_value(&start);
         magic_timing_begin(&cycleLo, &cycleHi);

@@ -102,7 +102,7 @@ void run_query3(struct _config_db config_db, struct _config_query params){
         free(row_array);
     }
 
-    if ( config_db.store_type == 'c' ){
+    else if ( config_db.store_type == 'c' ){
       T col = 0;
       data_count = 0;
       T *col_array = malloc(config_db.row_count * sizeof(T));
