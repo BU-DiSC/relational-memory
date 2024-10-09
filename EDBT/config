@@ -12,3 +12,12 @@ print = false
 r_col = 4
 num_samples = 1
 
+# 1 = is arm, 0 = not arm
+IS_ARM = 1
+
+# Check if ARM
+#if defined(__arm__) || defined(__aarch64__)
+    #define IS_ARM 1
+#else
+    #define IS_ARM 0
+#endif
