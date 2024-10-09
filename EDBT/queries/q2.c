@@ -1,6 +1,9 @@
 #define _GNU_SOURCE
 #include "exp_header.h"
 // #include "performance_counters.h"
+#if IS_ARM
+#include "performance_counters.h"
+#endif
 
 void run_query2(struct _config_db config_db, struct _config_query params){    
 

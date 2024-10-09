@@ -1,6 +1,8 @@
 #define _GNU_SOURCE
 #include "exp_header.h"
-// #include "performance_counters.h"
+#if IS_ARM
+#include "performance_counters.h"
+#endif
 
 int already_grouped(T check, int group_array_counter, T* group_array){
   int grouped = 0;
