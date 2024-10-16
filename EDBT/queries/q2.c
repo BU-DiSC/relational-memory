@@ -42,7 +42,9 @@ void run_query2(struct _config_db config_db, struct _config_query params){
         rme_row_size += config_db.column_widths[i];
     }
 
-    if ( config_db.store_type == 'b' ){
+	// Run RME
+	// b -> RME & ROW, r -> RME
+    if ( config_db.store_type == 'b' || config_db.store_type == 'r'){
         pmcs_get_value(&start);
         magic_timing_begin(&cycleLo, &cycleHi);
         for (int i = 0; i < config_db.row_count; i++) {
@@ -72,7 +74,25 @@ void run_query2(struct _config_db config_db, struct _config_query params){
         res = pmcs_diff(&end, &start);
         fprintf(params.output_file,"q2, r, h, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
         
-        data_count = 0;
+
+        if (config_db.print == true){
+            printf("\nQuery results:\n");
+            printf("cold, hot, ROW\n");
+            for (unsigned int i = 0; i < data_count; i++) {
+                printf("%d, %d, %d\n", cold_array[i], hot_array[i], row_array[i]);
+            }
+        }
+
+        free(cold_array);
+        free(hot_array);
+        
+    }
+
+	// Run Row
+	// b -> RME & ROW
+	// d -> ROW
+    if ( config_db.store_type == 'b' || config_db.store_type == 'd' ){
+		data_count = 0;
         pmcs_get_value(&start);
         magic_timing_begin(&cycleLo, &cycleHi);
         for (int i = 0; i < config_db.row_count; i++) {
@@ -88,21 +108,12 @@ void run_query2(struct _config_db config_db, struct _config_query params){
         res = pmcs_diff(&end, &start);
         fprintf(params.output_file,"q2, d, -, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
 
-        if (config_db.print == true){
-            printf("\nQuery results:\n");
-            printf("cold, hot, ROW\n");
-            for (unsigned int i = 0; i < data_count; i++) {
-                printf("%d, %d, %d\n", cold_array[i], hot_array[i], row_array[i]);
-            }
-        }
-
-        free(cold_array);
-        free(hot_array);
-        free(row_array);
+		free(row_array);
     }
 
-
-    else if ( config_db.store_type == 'c' ){
+    // Run Col
+	// c -> COL
+	if ( config_db.store_type == 'c' ){
         data_count = 0;
         T *col_array = malloc(config_db.row_count * sizeof(T));
         // Compute the product of row_count and column offset outside the loop
@@ -123,69 +134,7 @@ void run_query2(struct _config_db config_db, struct _config_query params){
     	res = pmcs_diff(&end, &start);
     	fprintf(params.output_file,"q2, c, -, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
         free(col_array);
-    }
 
-    else if ( config_db.store_type == 'r' ){
-        pmcs_get_value(&start);
-        magic_timing_begin(&cycleLo, &cycleHi);
-        for (int i = 0; i < config_db.row_count; i++) {
-            T second_column_value = *(T*)(plim + i * rme_row_size + params.col_offsets[1]);
-            if (second_column_value > params.k_value) {
-                cold_array[data_count] = *(T*)(plim + i * rme_row_size + params.col_offsets[0]);
-                data_count++;
-            }
-        }
-        magic_timing_end(&cycleLo, &cycleHi);
-        pmcs_get_value(&end);
-        res = pmcs_diff(&end, &start);
-        fprintf(params.output_file,"q2, r, c, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
-
-        data_count = 0;
-        pmcs_get_value(&start);
-        magic_timing_begin(&cycleLo, &cycleHi);
-        for (int i = 0; i < config_db.row_count; i++) {
-            T second_column_value = *(T*)(plim + i * rme_row_size + params.col_offsets[1]);
-            if (second_column_value > params.k_value) {
-                hot_array[data_count] = *(T*)(plim + i * rme_row_size + params.col_offsets[0]);
-                data_count++;
-            }
-        }
-        magic_timing_end(&cycleLo, &cycleHi);
-        pmcs_get_value(&end);
-        res = pmcs_diff(&end, &start);
-        fprintf(params.output_file,"q2, r, h, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
-
-        free(cold_array);
-        free(hot_array);
-
-    }
-
-    else if ( config_db.store_type == 'd' ){
-        data_count = 0;
-        pmcs_get_value(&start);
-        magic_timing_begin(&cycleLo, &cycleHi);
-        for (int i = 0; i < config_db.row_count; i++) {
-            T column1_value = *(T*)(dram + i * config_db.row_size + params.col_offsets[1]);
-
-            if (column1_value > params.k_value) {
-                row_array[data_count] = *(T*)(dram + i * config_db.row_size + params.col_offsets[0]);
-                data_count++;
-            }
-        }
-        magic_timing_end(&cycleLo, &cycleHi);
-        pmcs_get_value(&end);
-        res = pmcs_diff(&end, &start);
-        fprintf(params.output_file,"q2, d, -, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
-
-        if (config_db.print == true){
-            printf("\nQuery results:\n");
-            printf("cold, hot, ROW\n");
-            for (unsigned int i = 0; i < data_count; i++) {
-                printf("%d, %d, %d\n", cold_array[i], hot_array[i], row_array[i]);
-            }
-        }
-
-        free(row_array);
     }
 
     fflush(params.output_file);
