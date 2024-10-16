@@ -77,9 +77,9 @@ void run_query2(struct _config_db config_db, struct _config_query params){
 
         if (config_db.print == true){
             printf("\nQuery results:\n");
-            printf("cold, hot, ROW\n");
+            printf("cold, hot\n");
             for (unsigned int i = 0; i < data_count; i++) {
-                printf("%d, %d, %d\n", cold_array[i], hot_array[i], row_array[i]);
+                printf("%d, %d\n", cold_array[i], hot_array[i]);
             }
         }
 
