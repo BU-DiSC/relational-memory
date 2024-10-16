@@ -25,9 +25,16 @@ void run_query3(struct _config_db config_db, struct _config_query params){
     T *hot_array = malloc(config_db.row_count * sizeof(T));
     T *row_array = malloc(config_db.row_count * sizeof(T));
     
-    
+
+#if IS_ARM
+	//use mmap for arm
     unsigned char* plim = mmap(NULL, RELCACHE_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | 0x40, hpm_fd, RELCACHE_ADDR);
     unsigned char* dram = mmap(NULL, dram_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | 0x40, dram_fd, DRAM_ADDR);
+#else
+	// use malloc for x86
+    T* plim = (T*)malloc(RELCACHE_SIZE);
+    T* dram = (T*)malloc(dram_size);
+#endif
 
     unsigned rme_row_size = 0;
     for (int i = 0; i < params.enabled_column_number; i++) {

@@ -28,12 +28,18 @@ void run_query2(struct _config_db config_db, struct _config_query params){
     int fd = setup_pmcs();
     if (fd < 0)
         perror("Issue opening PMC FDs\n");
-
+	
+#if IS_ARM
+	//use mmap for arm
     //mapping fpga:
     unsigned char* plim = mmap((void*)0, RELCACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED|0x40, hpm_fd, RELCACHE_ADDR);
     //mapping dram
     unsigned char* dram = mmap((void*)0, dram_size, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED|0x40, dram_fd, DRAM_ADDR);
-
+#else
+	// use malloc for x86
+    T* plim = (T*)malloc(RELCACHE_SIZE);
+    T* dram = (T*)malloc(dram_size);
+#endif
     unsigned int data_count = 0;
 
     unsigned rme_row_size = 0;
