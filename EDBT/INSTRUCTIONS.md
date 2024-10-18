@@ -5,15 +5,15 @@ For the experiments in this repository, we used the Xilinx Zynq UltraScale+ MPSo
 # Configuration and Execution Guide
 
 1. Run `make` in the `src` directory.
-2. Copy the generated executable `new_demo` to the board.
+2. Copy the generated executable `rel_mem_bench` to the board.
 
 ## Default Configuration
 
-The program initially sets a [default configuration](utils/exp_config.c) for the experiment. These default values are hard-coded and provide baseline settings for the database and experiment. You can override the default configuration with command-line options, or by adding a [config](config) file. For example you can copy this [config](config) file to the same directory as `new_demo` and customize the database and experiment parameters.
+The program initially sets a [default configuration](utils/exp_config.c) for the experiment. These default values are hard-coded and provide baseline settings for the database and experiment. You can override the default configuration with command-line options, or by adding a [config](config) file. For example you can copy this [config](config) file to the same directory as `rel_mem_bench` and customize the database and experiment parameters.
 
 ### Command line Options
 
-You can run `./new_demo -h` to see the command line options
+You can run `./rel_mem_bench -h` to see the command line options
 
 - `-L`: Load database configuration from the 'config' file.
 - `-C`: Specify the number of columns.
@@ -31,18 +31,18 @@ You can run `./new_demo -h` to see the command line options
 
 - Run the single query with `-q` option followed by the query name such as `q2` and additional options. For example the following query would load the database configuration from the `config` file.
 
-  ```./new_demo -q q2 -L -O 0,4 -K 136```
+  ```./rel_mem_bench -q q2 -L -O 0,4 -K 136```
 
   This command would run query `Q2: SELECT A0 FROM S WHERE A1 > 136;`
 
 - Run the varying row size experiment with the `-r` option followed by the query name and additional options as needed. For example    the following command would run a varying row size experiment with the hard-coded database and experiment settings but it would override the default number of experiment by `-N 1` option.
 
-  ```./new_demo -r q2 -N 1```
+  ```./rel_mem_bench -r q2 -N 1```
 
   
 - For projectivity experiment, use `-p` option.
 
-  ```./new_demo -p```
+  ```./rel_mem_bench -p```
 
 
 ### Plotting
