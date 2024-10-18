@@ -2,7 +2,7 @@
 CC = aarch64-linux-gnu-gcc
 
 # Define the output name for the compiled program
-OUTPUT = new_demo
+OUTPUT = rel_mem_bench
 
 # Define where the header files are located
 INCLUDE_DIR = ./include
