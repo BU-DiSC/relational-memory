@@ -1,5 +1,7 @@
 # Define the default C compiler for aarch64
 CC = aarch64-linux-gnu-gcc
+# Define the default C compiler for others
+GCC = gcc
 
 # Define the output name for the compiled program
 OUTPUT = rel_mem_bench
@@ -30,9 +32,16 @@ SOURCES = demo.c \
 # Added -D __aarch64__ for aarch64 specific compilation
 CFLAGS = -I$(INCLUDE_DIR) -lm -O0 -D __aarch64__
 
+# removed -D __aarch64__ for compilation for others
+FLAGS = -I$(INCLUDE_DIR) -lm -O0 
+
 # The default target (typing 'make' will use this target)
 all: $(SOURCES)
 	$(CC) $(CFLAGS) $(SOURCES) -o $(OUTPUT)
+
+gcc: $(SOURCES)
+	$(GCC) $(FLAGS) $(SOURCES) -o $(OUTPUT)
+
 
 # Clean target to remove output and intermediate files
 clean:
