@@ -36,9 +36,10 @@ void run_query2(struct _config_db config_db, struct _config_query params){
     //mapping dram
     unsigned char* dram = mmap((void*)0, dram_size, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED|0x40, dram_fd, DRAM_ADDR);
 #else
-	// use malloc for x86
-    T* plim = (T*)malloc(RELCACHE_SIZE);
-    T* dram = (T*)malloc(dram_size);
+	// use mmap for x86
+    T* plim = (T*)mmap(NULL, RELCACHE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    T* dram = (T*)mmap(NULL, dram_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
 #endif
     unsigned int data_count = 0;
 
