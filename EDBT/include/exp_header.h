@@ -1,5 +1,6 @@
 #include "config.h"
 #include "parse_config.h"
+#include <stdint.h>
 
 void set_config(int query_type, struct _config_db *config_db, struct experiment_config *exp_config, struct _config_query *query_config);
 
@@ -23,3 +24,30 @@ FILE* open_file(const char *filename, const char *mode);
 
 
 
+struct perf_counters {
+        long unsigned l1_references; ///< L1-D accesses
+        long unsigned l1_refills; ///< L1-D misses
+        long unsigned l2_references; ///< L2 accesses
+        long unsigned l2_refills; ///< L2 misses
+        long unsigned inst_retired; ///< Instructions retired
+};
+
+struct perf_counters pmcs_diff(struct perf_counters* a, struct perf_counters* b);
+
+int teardown_pmcs(void);
+void pmcs_get_value(struct perf_counters* res);
+int setup_pmcs(void);
+
+#define magic_timing_begin(cycleLo, cycleHi) {\
+  uint32_t low, high;\
+  asm volatile("rdtsc" : "=a" (low), "=d" (high));\
+  *cycleLo = low;\
+  *cycleHi = high;\
+}
+
+#define magic_timing_end(cycleLo, cycleHi) {\
+  uint32_t low, high;\
+  asm volatile("rdtsc" : "=a" (low), "=d" (high));\
+  *cycleLo = ((uint64_t)high << 32 | low) - ((uint64_t)(*cycleHi) << 32 | *cycleLo);\
+  *cycleHi = 0;\
+}

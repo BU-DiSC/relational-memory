@@ -31,6 +31,9 @@ void run_query4(struct _config_db config_db, struct _config_query params){
     int fd = setup_pmcs();
     if (fd < 0)
         perror("Issue opening PMC FDs\n");
+    
+    T plim_average = 0;
+    int plim_repetition = 0;
 
 #if IS_ARM
 	//use mmap for arm
@@ -55,8 +58,6 @@ void run_query4(struct _config_db config_db, struct _config_query params){
         exit(EXIT_FAILURE);
     }
     int plim_group_array_counter = 0;
-    T plim_average = 0;
-    int plim_repetition = 0;
     
     pmcs_get_value(&start);
     magic_timing_begin(&cycleLo, &cycleHi);

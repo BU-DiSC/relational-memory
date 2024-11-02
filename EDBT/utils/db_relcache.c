@@ -29,12 +29,19 @@ int configure_relcache(struct _config_db config_db, struct _config_query *params
     return unmap_result;
 }
 
-#define __dsb(){\
-  do{\
+#ifdef IS_ARM
+#define __dsb() {\
+  do {\
     asm volatile("dsb 15");\
-  }while(0);\
+  } while(0);\
 }
-
+#else
+#define __dsb() {\
+  do {\
+    asm volatile("mfence" ::: "memory");\
+  } while(0);\
+}
+#endif
 int reset_relcache(unsigned int frame_offset) {  
     
     int lpd_fd  = open_fd();
