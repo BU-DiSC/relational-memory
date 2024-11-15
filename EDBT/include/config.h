@@ -41,6 +41,7 @@ struct _config_db {
     unsigned int*  column_widths;
     char*          column_types;
     char           store_type;
+    char           target_type;
     char           col_type;
     bool           print;
     unsigned int   min;

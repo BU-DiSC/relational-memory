@@ -1,5 +1,6 @@
 #include "parse_config.h"
 #include "exp_header.h"
+#include <sys/stat.h>
 
 int parse_exp_offsets(struct _config_query* query_config) {
     char *temp = strdup(query_config->offsets);  // Duplicate the string because strtok modifies the input
@@ -30,8 +31,10 @@ QueryFunction get_query_function(int query_type) {
 }
 
 char* get_filename_from_query_type(char query_type) {
+    struct stat st = {0};
+
     static char filename[50]; // Static because we're returning the local variable's address
-    snprintf(filename, sizeof(filename), "data/PLT2_result_q%c_col.csv", query_type);
+    snprintf(filename, sizeof(filename), "PLT2_result_q%c_col.csv", query_type);
     return filename;
 }
 

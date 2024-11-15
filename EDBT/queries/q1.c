@@ -1,19 +1,13 @@
 #define _GNU_SOURCE
 #include "../include/exp_header.h"
-#if IS_ARM
 #include "performance_counters.h"
-#endif
 
-void run_query1(struct _config_db config_db, struct _config_query params) {
+void run_query1(struct _config_db config_db, struct _config_query params, unsigned char * db) {
 
     unsigned int cycleHi    = 0, cycleLo=0;
     struct perf_counters res, start, end;
-    int fd = setup_pmcs();
-    if (fd < 0)
-        perror("Issue opening PMC FDs\n");
-
     bool mvcc_enabled = false;
-	// Do we need to update these?
+
     T *cold_array = malloc(config_db.row_count * params.enabled_column_number * sizeof(T));
     T *hot_array = malloc(config_db.row_count * params.enabled_column_number * sizeof(T));
     T *row_array = malloc(config_db.row_count * params.enabled_column_number * sizeof(T));
@@ -24,27 +18,31 @@ void run_query1(struct _config_db config_db, struct _config_query params) {
     //-- pasring arguments done --------------------------------------
 
     unsigned dram_size  = config_db.row_count*config_db.row_size;
+#ifdef __aarch64__
+    //use mmap for arm
     int hpm_fd          = open_fd();
     int dram_fd         = open_fd();
 
-#if IS_ARM
-	//use mmap for arm
+    int fd = setup_pmcs();
+    if (fd < 0)
+        perror("Issue opening PMC FDs\n");
+
     //mapping fpga:
     unsigned char* plim = mmap((void*)0, RELCACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED|0x40, hpm_fd, RELCACHE_ADDR);
     //mapping dram
     unsigned char* dram = mmap((void*)0, dram_size, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED|0x40, dram_fd, DRAM_ADDR);
 #else
-	// use mmap for x86
-    T* plim = (T*)mmap(NULL, RELCACHE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    T* dram = (T*)mmap(NULL, dram_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    T* plim;
+    T* dram = (T*)db;
 #endif
 
     T data;
     T data_count = 0;
+    printf("\nRow store query %c\n", config_db.store_type);
 
 	// Run RME 
 	// b -> RME & ROW, r -> RME
-    if ( config_db.store_type == 'b' || config_db.store_type == 'r'){
+    if ( config_db.store_type == 'r' && (config_db.target_type=='b'||config_db.target_type=='r') ){
         // move multiplication outside
         unsigned width = config_db.column_widths[0];
         pmcs_get_value(&start);
@@ -94,12 +92,13 @@ void run_query1(struct _config_db config_db, struct _config_query params) {
 	
 	//Run Row
 	// b -> RME & ROW, d -> ROW
-    if ( config_db.store_type == 'b' || config_db.store_type == 'd'){
+    if ( config_db.store_type == 'r' && (config_db.target_type=='b'||config_db.target_type=='d') ){
 		magic_timing_end(&cycleLo, &cycleHi);
         pmcs_get_value(&end);
         res = pmcs_diff(&end, &start);
         fprintf(params.output_file,"q1, d, -, %d, %d, %d, %d, %d, %lu, %lu, %lu, %lu, %lu\n", params.enabled_column_number, config_db.row_size, config_db.row_count, config_db.column_widths[0], cycleLo, res.l1_references, res.l1_refills, res.l2_references, res.l2_refills, res.inst_retired);
-        if (config_db.print == true){
+        if (true){
+        //if (config_db.print == true){
             printf("\nRow store query results:\n");
             printf("cold, hot, ROW\n");
             for (unsigned int i = 0; i < data_count; i++) {
@@ -137,43 +136,18 @@ void run_query1(struct _config_db config_db, struct _config_query params) {
         free(col_array);
 		
 	}
+
+    fflush(params.output_file);
+
+#ifdef __aarch64__
     int ret = teardown_pmcs();
     if (ret < 0)
         perror("Issue detected while tearing down the PMCs\n");
-
-    fflush(params.output_file);
 
     munmap(plim, RELCACHE_SIZE);
     munmap(dram, dram_size);
 
     close(hpm_fd);
     close(dram_fd);
+#endif
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,19 +1,22 @@
 #define _GNU_SOURCE
 #include "exp_header.h"
-#if IS_ARM
 #include "performance_counters.h"
-#endif
 
-void run_query3(struct _config_db config_db, struct _config_query params){
+void run_query3(struct _config_db config_db, struct _config_query params, unsigned char * db){
 
     unsigned int cycleHi    = 0, cycleLo=0;
     struct perf_counters res, start, end;
-    char store_type = 'r';
     T k = params.k_value;
 
     unsigned int column_num = config_db.row_size / sizeof(T);
 
     unsigned dram_size  = config_db.row_count*config_db.row_size;
+    T *cold_array = malloc(config_db.row_count * sizeof(T));
+    T *hot_array = malloc(config_db.row_count * sizeof(T));
+    T *row_array = malloc(config_db.row_count * sizeof(T));
+    
+
+#ifdef __aarch64__
     int hpm_fd          = open_fd();
     int dram_fd         = open_fd();
 
@@ -21,19 +24,12 @@ void run_query3(struct _config_db config_db, struct _config_query params){
     if (fd < 0)
         perror("Issue opening PMC FDs\n");
 
-    T *cold_array = malloc(config_db.row_count * sizeof(T));
-    T *hot_array = malloc(config_db.row_count * sizeof(T));
-    T *row_array = malloc(config_db.row_count * sizeof(T));
-    
-
-#if IS_ARM
 	//use mmap for arm
     unsigned char* plim = mmap(NULL, RELCACHE_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | 0x40, hpm_fd, RELCACHE_ADDR);
     unsigned char* dram = mmap(NULL, dram_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_SHARED | 0x40, dram_fd, DRAM_ADDR);
 #else
-	// use mmap for x86
-    T* plim = (T*)mmap(NULL, RELCACHE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    T* dram = (T*)mmap(NULL, dram_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    T* plim;
+    T* dram = (T*)db;
 #endif
 
     unsigned rme_row_size = 0;
@@ -46,7 +42,7 @@ void run_query3(struct _config_db config_db, struct _config_query params){
     
 	// Run RME
 	// b -> RME & ROW, r -> RME
-    if ( config_db.store_type == 'b' || config_db.store_type == 'r'){
+    if ( config_db.store_type == 'r' && (config_db.target_type=='b'||config_db.target_type=='r') ){
         T cold = 0;
         pmcs_get_value(&start);
         magic_timing_begin(&cycleLo, &cycleHi);
@@ -95,7 +91,7 @@ void run_query3(struct _config_db config_db, struct _config_query params){
 	// Run Row
 	// b -> RME & ROW
 	// d -> ROW
-    if ( config_db.store_type == 'b' || config_db.store_type == 'd' ){
+    if ( config_db.store_type == 'r' && (config_db.target_type=='b'||config_db.target_type=='d') ){
         T row = 0;
         data_count = 0;
         pmcs_get_value(&start);
@@ -149,15 +145,17 @@ void run_query3(struct _config_db config_db, struct _config_query params){
 		free(col_array); 
     }
 
+    fflush(params.output_file);
+
+#ifdef __aarch64__
     int ret = teardown_pmcs();
     if (ret < 0)
         perror("Issue detected while tearing down the PMCs\n");
-
-    fflush(params.output_file);
 
     munmap(plim, RELCACHE_SIZE);
     munmap(dram, dram_size);
 
     close(hpm_fd);
     close(dram_fd);
+#endif
 }

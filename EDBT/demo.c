@@ -20,6 +20,7 @@ int open_fd() {
 FILE* open_file(const char *filename, const char *mode) {
     FILE *file = fopen(filename, mode);
     if (!file) {
+        printf("%s\t: ", filename);
         perror("Error opening file");
         exit(EXIT_FAILURE); // or return NULL and handle it in the caller
     }
@@ -58,10 +59,12 @@ void run_single_query(struct _config_db *config_db, struct experiment_config *ex
 
     query_config->enabled_column_number = parse_exp_offsets(query_config); // set offsets in query_config and get enabled column number
 
-    run_query(config_db, query_config, query_func);
+    for (unsigned int sample = 1; sample <= exp_config->num_samples; sample++) {
+        run_query(config_db, query_config, query_func);
 
-    config_db->store_type = 'c';
-    run_query(config_db, query_config, query_func);
+        config_db->store_type = 'c';
+        run_query(config_db, query_config, query_func);
+    }
     
     free(config_db->column_widths);
     free(config_db->column_types);
@@ -73,18 +76,22 @@ void run_query(struct _config_db *config_db, struct _config_query* query_config,
     // temporary naive flush
     flush_cache();
     printf("DB generate\n");
-    generate_db(*config_db);
+    unsigned char* db = generate_db(*config_db);
 
+#ifdef __aarch64__
     printf("config relmem\n");
     configure_relcache(*config_db, query_config);
+#endif
     
     printf("run query\n");
-    query_func(*config_db, *query_config);
+    query_func(*config_db, *query_config, db);
     
     
+#ifdef __aarch64__
     reset_relcache(0);
     // temporary naive flush
     flush_cache();
+#endif
 }
 
 void flush_cache() {
@@ -109,7 +116,7 @@ int main(int argc, char **argv) {
     struct _config_db config_db;
     struct experiment_config exp_args;
 
-    while ((opt = getopt(argc, argv, "r:q:phl")) != -1) {
+    while ((opt = getopt(argc, argv, "r:c:q:phl")) != -1) {
         switch (opt) {
             case 'r': 
                 query_name = optarg;
@@ -118,6 +125,18 @@ int main(int argc, char **argv) {
                 
                 QueryFunction query_func = get_query_function(query_name[1]);
                 row_size_exp(&config_db, &exp_args, &config_query, query_func, filename);
+
+                print_experiment_config(&exp_args, config_db, config_query);
+                print_dotted_line(50);
+                printf("Experiment results were saved in: %s\n\n", filename);
+                break;
+            case 'c': 
+                query_name = optarg;
+                filename = get_filename_from_query_type(query_name[1]);
+                setup(argc, argv, query_name, &config_db, &exp_args, &config_query);
+                
+                query_func = get_query_function(query_name[1]);
+                col_size_exp(&config_db, &exp_args, &config_query, query_func, filename);
 
                 print_experiment_config(&exp_args, config_db, config_query);
                 print_dotted_line(50);

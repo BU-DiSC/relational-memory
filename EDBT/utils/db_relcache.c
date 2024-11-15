@@ -29,7 +29,7 @@ int configure_relcache(struct _config_db config_db, struct _config_query *params
     return unmap_result;
 }
 
-#ifdef IS_ARM
+#ifdef __aarch64__
 #define __dsb() {\
   do {\
     asm volatile("dsb 15");\
@@ -37,9 +37,7 @@ int configure_relcache(struct _config_db config_db, struct _config_query *params
 }
 #else
 #define __dsb() {\
-  do {\
-    asm volatile("mfence" ::: "memory");\
-  } while(0);\
+  sleep(1);\
 }
 #endif
 int reset_relcache(unsigned int frame_offset) {  

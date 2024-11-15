@@ -74,6 +74,7 @@ static int inst_retired_fd;
  */
 static int open_pmc_fd(unsigned int pmc_type, int group_fd)
 {
+#ifdef __aarch64__
 	static struct perf_event_attr attr;
 	attr.type = PERF_TYPE_RAW;
 	attr.config = pmc_type;
@@ -87,6 +88,9 @@ static int open_pmc_fd(unsigned int pmc_type, int group_fd)
 	if (fd == -1) {
 		perror("Could not open fd for performance counter\n");
 	}
+#else
+	int fd = 0;
+#endif
 
 	return fd;
 }
@@ -122,11 +126,15 @@ int setup_pmcs(void)
  */
 static inline int close_pmc_fd(int fd)
 {
+#ifdef __aarch64__
 	int ret = close(fd);
 	if (ret == -1) {
 		perror("Could not close fd for performance counter\n");
 	}
 	return ret;
+#else
+	return 0;
+#endif
 }
 
 /** @brief Close access to performance counters.
@@ -158,6 +166,7 @@ int teardown_pmcs(void)
  */
 void pmcs_get_value(struct perf_counters* res)
 {
+#ifdef __aarch64__
 	struct read_format measurement;
 	size_t size = read(l1_references_fd, &measurement, sizeof(struct read_format));
 	if (size != sizeof(struct read_format)) {
@@ -168,6 +177,13 @@ void pmcs_get_value(struct perf_counters* res)
 	res->l2_references = measurement.l2_references.value;
 	res->l2_refills = measurement.l2_refills.value;
     res->inst_retired = measurement.inst_retired.value;
+#else
+	res->l1_references = 0;
+	res->l1_refills = 0;
+	res->l2_references = 0;
+	res->l2_refills = 0;
+    res->inst_retired = 0;
+#endif
 }
 
 struct perf_counters pmcs_diff(struct perf_counters* a, struct perf_counters* b)

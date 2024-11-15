@@ -9,6 +9,11 @@ void set_config(int query_type, struct _config_db *config_db, struct experiment_
     config_db->num_columns = 16;
     config_db->row_size = 64;
     config_db->store_type = 'r';
+#ifdef __aarch64__
+    config_db->target_type = 'b';
+#else
+    config_db->target_type = 'd';
+#endif
     config_db->col_type = 'r';
     config_db->print = false;
     config_db->min = 0;

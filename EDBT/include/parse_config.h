@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-typedef void (*QueryFunction)(struct _config_db, struct _config_query);
+typedef void (*QueryFunction)(struct _config_db, struct _config_query, unsigned char * db);
 typedef void (*ConfigFunction)(struct _config_db*, struct experiment_config*, struct _config_query*);
 
 QueryFunction get_query_function(int query_type);

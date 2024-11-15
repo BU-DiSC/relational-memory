@@ -30,7 +30,7 @@ unsigned int get_uniform(unsigned int rangeLow, unsigned int rangeHigh) {
     return myRand_scaled;
 }
 
-void generate_db(struct _config_db config) {
+unsigned char * generate_db(struct _config_db config) {
     srand(1);
     unsigned check_row_size = 0;
 
@@ -44,15 +44,12 @@ void generate_db(struct _config_db config) {
     // Use 'config.row_count' instead of 'row_count'
     unsigned db_size = config.row_count * row_size;
         
-    // #ifdef linux
-    //     unsigned char* db = (unsigned char *) malloc ( db_size * sizeof(unsigned char) );
-    // #else
-    //     int hpm_fd = open_fd();
-    //     unsigned char* db = mmap((void*)0, db_size, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED, hpm_fd, HIGH_DDR_ADDR); //Uncached mapping
-    // #endif
-
+#ifdef __aarch64__
     int hpm_fd = open_fd();
     unsigned char* db = mmap((void*)0, db_size, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED, hpm_fd, HIGH_DDR_ADDR); //Uncached mapping
+#else
+    unsigned char* db = (unsigned char *) malloc ( db_size * sizeof(unsigned char) );
+#endif
 
     for (int i = 0; i < db_size; i++) {
         db[i] = 0;            
@@ -141,10 +138,14 @@ void generate_db(struct _config_db config) {
     if (config.print == true) {
         print_db(config, db, row_size);
     }
+#ifdef __aarch64__
     if (munmap(db, db_size) == -1) {
     perror("Error unmapping the memory");
     // Handle the error as appropriate
     }
+#endif
+
+    return db;
 
 }
 

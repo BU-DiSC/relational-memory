@@ -1,8 +1,6 @@
 #define _GNU_SOURCE
 #include "exp_header.h"
-#if IS_ARM
 #include "performance_counters.h"
-#endif
 
 int already_grouped(T check, int group_array_counter, T* group_array){
   int grouped = 0;
@@ -17,14 +15,18 @@ int already_grouped(T check, int group_array_counter, T* group_array){
   return grouped;
 }
 
-void run_query4(struct _config_db config_db, struct _config_query params){
+void run_query4(struct _config_db config_db, struct _config_query params, unsigned char * db){
     
     unsigned int cycleHi    = 0, cycleLo=0;
     struct perf_counters res, start, end;
-    char store_type = 'r';
     T k = params.k_value;
 
     unsigned dram_size  = config_db.row_count*config_db.row_size;
+    T plim_average = 0;
+    int plim_repetition = 0;
+
+#ifdef __aarch64__
+	//use mmap for arm
     int hpm_fd          = open_fd();
     int dram_fd         = open_fd();
 
@@ -32,24 +34,18 @@ void run_query4(struct _config_db config_db, struct _config_query params){
     if (fd < 0)
         perror("Issue opening PMC FDs\n");
     
-    T plim_average = 0;
-    int plim_repetition = 0;
-
-#if IS_ARM
-	//use mmap for arm
     //mapping fpga:
     T* plim = mmap((void*)0, RELCACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED|0x40, hpm_fd, RELCACHE_ADDR);
     //mapping dram
     T* dram = mmap((void*)0, dram_size, PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED|0x40, dram_fd, DRAM_ADDR);
 #else
-	// use mmap for x86
-    T* plim = (T*)mmap(NULL, RELCACHE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    T* dram = (T*)mmap(NULL, dram_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    T* plim;
+    T* dram = (T*)db;
 #endif
 
 	// Run RME
 	// b -> RME & ROW, r -> RME
-    if ( config_db.store_type == 'b' || config_db.store_type == 'r'){
+    if ( config_db.store_type == 'r' && (config_db.target_type=='b'||config_db.target_type=='r') ){
     T* plim_group_array = NULL;
     int plim_group_array_capacity = 16;
     plim_group_array = (T*)malloc(plim_group_array_capacity * sizeof(T));
@@ -153,7 +149,7 @@ void run_query4(struct _config_db config_db, struct _config_query params){
 	// Run Row
 	// b -> RME & ROW
 	// d -> ROW
-    if ( config_db.store_type == 'b' || config_db.store_type == 'd' ){
+    if ( config_db.store_type == 'r' && (config_db.target_type=='b'||config_db.target_type=='d') ){
     // start DRAM
     T* dram_group_array = NULL;
     int dram_group_array_capacity = 16;
@@ -264,15 +260,17 @@ void run_query4(struct _config_db config_db, struct _config_query params){
     free(dram_group_array);  // Free the dynamically allocated memory
     }
 
+    fflush(params.output_file);
+
+#ifdef __aarch64__
     int ret = teardown_pmcs();
     if (ret < 0)
         perror("Issue detected while tearing down the PMCs\n");
-
-    fflush(params.output_file);
 
     munmap(plim, RELCACHE_SIZE);
     munmap(dram, dram_size);
 
     close(hpm_fd);
     close(dram_fd);
+#endif
 }
