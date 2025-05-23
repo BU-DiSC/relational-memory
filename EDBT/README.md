@@ -21,3 +21,5 @@ Usefull links:
 - [BU DiSC Lab](https://disc.bu.edu/papers/edbt23-relational-memory)
 
 - [EDBT 2023](https://openproceedings.org/2023/conf/edbt/paper-177.pdf)
+
+- [Repository with Hardware Description](https://github.com/ro0zkhosh/relational-memory-engine)
