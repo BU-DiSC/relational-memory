@@ -1,36 +1,95 @@
-This repository contains the software artifacts for our research presented at VLDB 2023 and EDBT 2023. Our focus is on Relational Memory, a method for dynamic data layout transformation using specialized hardware, bridging transactional and analytical DBMS requirements. For more information on our research and other projects, visit the [BU DiSC Lab](https://disc.bu.edu/papers).
+# Relational Memory: A Hardware-Software Co-design for Accelerating Database Operations
 
+This project explores a hardware-software co-design approach for accelerating database operations, with a primary focus on the concept of relational memory. It investigates the implications of relational memory for query processing and overall system performance. This repository serves as a central hub for the research, containing the codebase, experimental results, and related publications.
 
-# On-the-fly Data Transformation in Action
+## Directory Structure
 
-This work was presented on the Demonstration Track of VLDB 2023, where it was selected for the Best Demonstration award.
+This project is organized into the following main directories:
 
-Transactional and analytical database management systems (DBMS) typically employ different data layouts: row-stores for the first and column-stores for the latter. In order to bridge the requirements of the two without maintaining two systems and two (or more) copies of the data, our proposed system Relational Memory employs specialized hardware that transforms the base row table into arbitrary column groups at query execution time. This approach maximizes the cache locality and is easy to use via a simple abstraction that allows transparent on-the-fly data transformation. Here, we demonstrate how to deploy and use Relational Memory via four representative scenarios. The demonstration uses the fullstack implementation of Relational Memory on the Xilinx Zynq UltraScale+ MPSoC platform. Conference participants will interact with Relational Memory deployed in the actual platform.
+*   **EDBT/**: Contains materials related to the EDBT publication (see "Publications" section). This includes source code for experiments (C programs for queries, utilities, etc.), hardware bitstreams (`EDBT/bitstreams/`), scripts for plotting results, and experiment configuration files. It also contains specific `INSTRUCTIONS.md` and `README.md` files.
+*   **RISE/**: Contains materials related to the RISE publication. This includes C source code for database operations, hardware bitstreams (`RISE/bitstreams/`), Python scripts for data analysis and plotting, experiment results, and shell scripts for running experiments.
+*   **vldb2023/**: Contains materials related to the VLDB 2023 demonstration (see "Publications" section). This includes C source code for queries, Python scripts for plotting, a Jupyter notebook demo (`vldb2023/demo.ipynb`), experiment results, and specific `INSTRUCTIONS.md`, `README.md`, and `RUNNING.md` files.
 
-Usefull links:
+## Building and Running the Code
 
-- [Instructions](vldb2023/INSTRUCTIONS.md)
+This section provides general instructions for building and running the code. Refer to the specific documentation within each subdirectory for more detailed instructions and experiment-specific configurations.
 
-- [VLDB 2023](https://www.vldb.org/pvldb/volumes/16/paper/On-the-fly%20Data%20Transformation%20in%20Action)
+### Prerequisites
 
-# Relational Memory: Native In-Memory Accesses on Rows and Columns
+*   **Hardware:** Experiments are designed for the Xilinx Zynq UltraScale+ MPSoC platform. Ready-to-deploy bitstreams are provided in the respective `bitstreams` directories (e.g., `EDBT/bitstreams/`, `RISE/bitstreams/`).
+*   **Compiler:** An AArch64 GCC (e.g., `aarch64-linux-gnu-gcc`) is generally required for compiling the C code for the target platform. For the `vldb2023` demonstration, a standard `gcc` can be used for its `query.c` program.
+*   **Vivado:** Vivado 2017.4 was used for the EDBT project; later versions might be compatible.
+*   **Python:** Python is used for plotting and data analysis scripts. The `vldb2023/demo.ipynb` Jupyter notebook specifically requires `jupyterlab`.
 
-This work was accepted for publication in the Proceedings of the EDBT 2023.
+### Compilation
 
-Analytical database systems are typically designed to use a columnfirst data layout to access only the desired fields. On the other
-hand, storing data row-first works great for accessing, inserting, or updating entire rows. Transforming rows to columns at runtime is expensive, hence, many analytical systems ingest data in row-first form and transform it in the background to columns to
-facilitate future analytical queries. How will this design change if we can always efficiently access only the desired set of columns?
-To address this question, we present a radically new approach to data transformation from rows to columns. We build upon recent advancements in embedded platforms with re-programmable logic to design native in-memory access on rows and columns.
-Our approach, termed Relational Memory (RM), relies on an FPGA-based accelerator that sits between the CPU and main
-memory and transparently transforms base data to any group of columns with minimal overhead at runtime. This design allows
-accessing any group of columns as if it already exists in memory. We implement and deploy RM in real hardware, and we show that
-we can access the desired columns up to 1.63× faster compared to a row-wise layout, while matching the performance of pure
-columnar access for low projectivity, and outperforming it by up to 2.23× as projectivity (and tuple reconstruction cost) increases.
-Overall, RM allows the CPU to access the optimal data layout, radically reducing unnecessary data movement without high
-data transformation costs, thus, simplifying software complexity and physical design, while accelerating query execution.
+*   **EDBT/**:
+    *   Navigate to the `EDBT/` directory.
+    *   Run `make` to build the executable `rel_mem_bench`. (Note: The `EDBT/INSTRUCTIONS.md` mentions running make in a `src` subdirectory, but the `Makefile` is located directly in `EDBT/`.)
+*   **RISE/**:
+    *   Navigate to the `RISE/` directory.
+    *   Run `make`. Executables (e.g., `db_generate`, `q1_col1`) will be placed in the `RISE/objects/` directory.
+*   **vldb2023/**:
+    *   Navigate to the `vldb2023/` directory.
+    *   Compile the query code using: `gcc query.c -o query`
 
-Usefull links:
+### Execution
 
-- [Instructions](EDBT/INSTRUCTIONS.md)
+*   **General:**
+    *   Compiled executables typically need to be copied to the target hardware platform.
+    *   Specific bitstreams may need to be loaded onto the FPGA.
+*   **EDBT/**:
+    *   The `rel_mem_bench` executable accepts various command-line options (use `-h` for details) or a `config` file.
+    *   Refer to `EDBT/INSTRUCTIONS.md` for examples. Plotting scripts are in `EDBT/plotting/`.
+*   **RISE/**:
+    *   Executables are in `RISE/objects/`. Shell scripts for running experiments are in `RISE/sources_bash/`.
+    *   Analysis and plotting scripts are in `RISE/data_analysis/` and `RISE/plotting/`.
+*   **vldb2023/**:
+    *   Run the `query` executable with parameters detailed in `vldb2023/RUNNING.md`.
+    *   The `vldb2023/demo.ipynb` Jupyter notebook provides an interactive demonstration.
 
-- [EDBT 2023](https://openproceedings.org/2023/conf/edbt/paper-177.pdf)
+## Running Experiments and Analyzing Results
+
+This section outlines the general workflow for evaluations. Consult subdirectory documentation for specifics.
+
+1.  **Setup:** Configure the hardware (Xilinx Zynq UltraScale+ MPSoC) and load the appropriate bitstream.
+2.  **Data Preparation:** Generate or load datasets as needed. Utilities like `db_generate` (in `RISE/objects/`) may be available.
+3.  **Execution:** Run experiments using compiled executables with command-line arguments or provided shell scripts.
+    *   **EDBT:** Use `rel_mem_bench` as per `EDBT/INSTRUCTIONS.md`.
+    *   **RISE:** Use shell scripts in `RISE/sources_bash/` or executables from `RISE/objects/`.
+    *   **vldb2023:** Use the `query` executable as per `vldb2023/RUNNING.md` or the `demo.ipynb`.
+4.  **Data Collection:** Results (performance metrics, query outputs) are often saved to CSV files (e.g., in `EDBT/plotting/data/`, `RISE/plotting/.../results_framing.csv`, `vldb2023/results/`) or printed to standard output.
+5.  **Analysis & Visualization:** Use Python scripts to process data and generate plots.
+    *   **EDBT:** Scripts like `plot_projectivity.py` are in `EDBT/plotting/`. Plots may be saved in `EDBT/plotting/plots/`.
+    *   **RISE:** Scripts are in `RISE/plotting/` subdirectories and `RISE/data_analysis/`.
+    *   **vldb2023:** Scripts are in `vldb2023/plotting/`. The `demo.ipynb` also includes visualizations.
+
+## Publications
+
+This research has led to the following publications:
+
+*   **EDBT 2023:** Relational Memory: Native In-Memory Accesses on Rows and Columns.
+    *   [BU DiSC Lab](https://disc.bu.edu/papers/edbt23-relational-memory)
+    *   [EDBT 2023 Proceedings](https://openproceedings.org/2023/conf/edbt/paper-177.pdf)
+*   **VLDB 2023 Demo:** On-the-fly Data Transformation in Action.
+    *   [BU DiSC Lab](https://disc.bu.edu/papers/vldb23-mun)
+    *   [VLDB 2023 Proceedings](https://www.vldb.org/pvldb/volumes/16/paper/On-the-fly%20Data%20Transformation%20in%20Action)
+
+(Information for the RISE publication should be added here when available.)
+
+## Contributing
+
+We welcome contributions! Please follow these general guidelines:
+
+1.  **Fork & Branch:** Fork the repository and create a descriptive branch for your changes.
+2.  **Coding Style:**
+    *   **C:** Follow existing style if discernible; otherwise, aim for K&R.
+    *   **Python:** Adhere to PEP 8.
+    *   Comment complex logic.
+3.  **Tests:**
+    *   Add tests for new features or bug fixes.
+    *   The `EDBT/tests/` directory contains examples. Check other subdirectories for any existing test infrastructure.
+4.  **Compile & Test:** Ensure your changes compile and all tests pass.
+5.  **Pull Request:** Submit a PR with a clear title and detailed description of your changes.
+
+Open an issue to discuss significant contributions or questions.
